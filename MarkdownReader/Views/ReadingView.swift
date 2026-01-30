@@ -15,36 +15,15 @@ struct ReadingView: View {
         GeometryReader { geometry in
             ScrollViewReader { scrollProxy in
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 20) {
                         // Top anchor for scroll navigation
                         Color.clear
                             .frame(height: 1)
                             .id("top")
 
                         // Header
-                        VStack(alignment: .center, spacing: 8) {
-                            Text(article.title)
-                                .font(.system(size: settings.fontSize + 8, weight: .bold, design: settings.fontDesign))
-                                .multilineTextAlignment(.center)
-
-                            HStack(spacing: 8) {
-                                if let author = article.author {
-                                    Text(author)
-                                }
-                                if article.author != nil && article.sourceDomain != nil {
-                                    Text("·")
-                                }
-                                if let domain = article.sourceDomain {
-                                    Text(domain)
-                                }
-                                Text("·")
-                                Text("\(article.estimatedReadingTime) min read")
-                            }
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.bottom, 24)
+                        articleHeader
+                            .padding(.bottom, 16)
 
                         // Content
                         MarkdownContentView(
@@ -59,8 +38,9 @@ struct ReadingView: View {
                             .frame(height: 1)
                             .id("bottom")
                     }
-                    .padding(.horizontal, max(40, (geometry.size.width - settings.contentWidth) / 2))
-                    .padding(.vertical, 40)
+                    .padding(.horizontal, max(48, (geometry.size.width - settings.contentWidth) / 2))
+                    .padding(.top, 48)
+                    .padding(.bottom, 80)
                     .background(GeometryReader { contentGeometry in
                         Color.clear.preference(
                             key: ScrollOffsetPreferenceKey.self,
@@ -81,36 +61,161 @@ struct ReadingView: View {
                 }
             }
         }
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button(action: { showSettings.toggle() }) {
-                    Image(systemName: "textformat.size")
-                }
-                .popover(isPresented: $showSettings) {
-                    ReadingSettingsView(settings: settings)
-                        .padding()
-                        .frame(width: 250)
-                }
-            }
-
-            ToolbarItem(placement: .primaryAction) {
-                if let url = article.sourceURL {
-                    Button(action: {
-                        NSWorkspace.shared.open(url)
-                    }) {
-                        Image(systemName: "safari")
-                    }
-                    .help("Open original article")
-                }
-            }
+        .background(Theme.contentBackground)
+        .overlay(alignment: .topTrailing) {
+            toolbarButtons
         }
         .overlay(alignment: .bottom) {
-            // Progress bar
-            ProgressView(value: scrollPosition / 100)
-                .padding(.horizontal)
-                .padding(.bottom, 8)
+            progressBar
         }
     }
+
+    // MARK: - Article Header
+
+    private var articleHeader: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(article.title)
+                .font(.system(size: settings.fontSize + 12, weight: .bold, design: settings.fontDesign))
+                .foregroundColor(Theme.contentText)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: 8) {
+                if let author = article.author {
+                    Text(author)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(Theme.contentSecondaryText)
+                }
+
+                if article.author != nil && article.sourceDomain != nil {
+                    Text("·")
+                        .foregroundColor(Theme.contentSecondaryText.opacity(0.5))
+                }
+
+                if let domain = article.sourceDomain {
+                    Text(domain)
+                        .font(.system(size: 14))
+                        .foregroundColor(Theme.contentSecondaryText.opacity(0.8))
+                }
+
+                Text("·")
+                    .foregroundColor(Theme.contentSecondaryText.opacity(0.5))
+
+                Text("\(article.estimatedReadingTime) min read")
+                    .font(.system(size: 14))
+                    .foregroundColor(Theme.contentSecondaryText.opacity(0.8))
+            }
+
+            // Tags
+            if !article.tags.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(article.tags.prefix(8), id: \.self) { tag in
+                            Text(tag)
+                                .font(.system(size: 11, weight: .medium))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Theme.accent.opacity(0.1))
+                                .foregroundColor(Theme.accent)
+                                .clipShape(Capsule())
+                        }
+                    }
+                }
+                .padding(.top, 4)
+            }
+
+            // Separator
+            Rectangle()
+                .fill(Theme.contentSecondaryText.opacity(0.1))
+                .frame(height: 1)
+                .padding(.top, 8)
+        }
+    }
+
+    // MARK: - Toolbar
+
+    private var toolbarButtons: some View {
+        HStack(spacing: 8) {
+            // Settings button
+            Button(action: { showSettings.toggle() }) {
+                Image(systemName: "textformat.size")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(Theme.contentSecondaryText)
+                    .frame(width: 32, height: 32)
+                    .background(
+                        Circle()
+                            .fill(Theme.contentBackground)
+                            .shadow(color: Color.black.opacity(0.08), radius: 4, x: 0, y: 2)
+                    )
+            }
+            .buttonStyle(.plain)
+            .popover(isPresented: $showSettings) {
+                ReadingSettingsView(settings: settings)
+                    .padding()
+                    .frame(width: 260)
+            }
+
+            // Open in browser
+            if let url = article.sourceURL {
+                Button(action: {
+                    NSWorkspace.shared.open(url)
+                }) {
+                    Image(systemName: "safari")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(Theme.contentSecondaryText)
+                        .frame(width: 32, height: 32)
+                        .background(
+                            Circle()
+                                .fill(Theme.contentBackground)
+                                .shadow(color: Color.black.opacity(0.08), radius: 4, x: 0, y: 2)
+                        )
+                }
+                .buttonStyle(.plain)
+                .help("Open original article")
+            }
+        }
+        .padding(16)
+    }
+
+    // MARK: - Progress Bar
+
+    private var progressBar: some View {
+        VStack(spacing: 0) {
+            // Gradient fade
+            LinearGradient(
+                colors: [Theme.contentBackground.opacity(0), Theme.contentBackground],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 40)
+
+            // Progress bar container
+            HStack {
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        // Track
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(Theme.contentSecondaryText.opacity(0.1))
+
+                        // Progress
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(scrollPosition >= 100 ? Theme.progressComplete : Theme.accent)
+                            .frame(width: geo.size.width * CGFloat(scrollPosition / 100))
+                    }
+                }
+                .frame(height: 3)
+
+                Text("\(Int(scrollPosition))%")
+                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                    .foregroundColor(Theme.contentSecondaryText.opacity(0.6))
+                    .frame(width: 36, alignment: .trailing)
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 16)
+            .background(Theme.contentBackground)
+        }
+    }
+
+    // MARK: - Key Handling
 
     private func handleKeyPress(_ keyPress: KeyPress, scrollProxy: ScrollViewProxy, viewHeight: CGFloat) -> KeyPress.Result {
         let key = keyPress.characters.first
@@ -180,14 +285,14 @@ struct ReadingView: View {
 
     private func scrollPage(up: Bool, viewHeight: CGFloat) {
         guard let scrollView = nsScrollView else { return }
-        let pageHeight = viewHeight - 50 // Leave some overlap
+        let pageHeight = viewHeight - 50
         let currentY = scrollView.contentView.bounds.origin.y
         let newY = up ? currentY - pageHeight : currentY + pageHeight
         let clampedY = max(0, min(newY, scrollView.documentView!.bounds.height - viewHeight))
 
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.2
-            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            context.duration = 0.25
+            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
             scrollView.contentView.animator().setBoundsOrigin(NSPoint(x: 0, y: clampedY))
         }
         scrollView.reflectScrolledClipView(scrollView.contentView)
@@ -209,11 +314,8 @@ struct ReadingView: View {
     }
 
     private func updateScrollPosition(offset: CGFloat, height: CGFloat) {
-        // Calculate percentage based on scroll offset
         let percentage = min(100, max(0, -offset / (height * 2) * 100))
         scrollPosition = percentage
-
-        // Save progress periodically
         appState.saveProgress(for: article, percentage: percentage, scrollPosition: offset)
     }
 
@@ -221,7 +323,6 @@ struct ReadingView: View {
         if let progress = appState.getProgress(for: article) {
             scrollPosition = progress.percentage
 
-            // Use a slight delay to ensure the scroll view is ready
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 if let scrollView = nsScrollView {
                     let targetY = -progress.scrollPosition
@@ -235,7 +336,8 @@ struct ReadingView: View {
     }
 }
 
-// Helper to find the underlying NSScrollView
+// MARK: - Helpers
+
 struct NSScrollViewFinder: NSViewRepresentable {
     @Binding var scrollView: NSScrollView?
 
@@ -274,6 +376,8 @@ struct ScrollOffsetPreferenceKey: PreferenceKey {
     }
 }
 
+// MARK: - Markdown Content View
+
 struct MarkdownContentView: View {
     let content: String
     let fontSize: CGFloat
@@ -281,7 +385,7 @@ struct MarkdownContentView: View {
     let lineSpacing: CGFloat
 
     var body: some View {
-        VStack(alignment: .leading, spacing: lineSpacing) {
+        VStack(alignment: .leading, spacing: lineSpacing + 4) {
             ForEach(Array(parseContent().enumerated()), id: \.offset) { index, element in
                 renderElement(element)
                     .id("element-\(index)")
@@ -303,13 +407,11 @@ struct MarkdownContentView: View {
             // Code block handling
             if trimmed.hasPrefix("```") {
                 if inCodeBlock {
-                    // End code block
                     elements.append(.codeBlock(language: codeBlockLanguage, code: codeBlockContent))
                     codeBlockContent = ""
                     codeBlockLanguage = nil
                     inCodeBlock = false
                 } else {
-                    // Start code block
                     if !currentParagraph.isEmpty {
                         elements.append(.paragraph(currentParagraph))
                         currentParagraph = ""
@@ -399,7 +501,7 @@ struct MarkdownContentView: View {
                 continue
             }
 
-            // Regular text - accumulate into paragraph
+            // Regular text
             if currentParagraph.isEmpty {
                 currentParagraph = trimmed
             } else {
@@ -419,56 +521,65 @@ struct MarkdownContentView: View {
         switch element {
         case .header(let level, let text):
             Text(processInlineMarkdown(text))
-                .font(.system(size: fontSize + CGFloat(24 - level * 3), weight: .semibold, design: fontDesign))
-                .padding(.top, CGFloat(16 - level * 2))
+                .font(.system(size: fontSize + CGFloat(20 - level * 3), weight: .semibold, design: fontDesign))
+                .foregroundColor(Theme.contentText)
+                .padding(.top, CGFloat(20 - level * 2))
 
         case .paragraph(let text):
             Text(processInlineMarkdown(text))
                 .font(.system(size: fontSize, design: fontDesign))
-                .lineSpacing(lineSpacing * 0.3)
+                .foregroundColor(Theme.contentText.opacity(0.9))
+                .lineSpacing(lineSpacing * 0.4)
 
         case .listItem(let text):
-            HStack(alignment: .top, spacing: 8) {
+            HStack(alignment: .top, spacing: 12) {
                 Text("•")
+                    .foregroundColor(Theme.accent)
                 Text(processInlineMarkdown(text))
                     .font(.system(size: fontSize, design: fontDesign))
+                    .foregroundColor(Theme.contentText.opacity(0.9))
             }
-            .padding(.leading, 16)
+            .padding(.leading, 4)
 
         case .blockquote(let text):
-            HStack(spacing: 12) {
-                Rectangle()
-                    .fill(Color.secondary.opacity(0.3))
+            HStack(spacing: 16) {
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(Theme.accent.opacity(0.6))
                     .frame(width: 3)
                 Text(processInlineMarkdown(text))
                     .font(.system(size: fontSize, design: fontDesign))
                     .italic()
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Theme.contentSecondaryText)
             }
-            .padding(.vertical, 4)
+            .padding(.vertical, 8)
+            .padding(.leading, 4)
 
         case .codeBlock(let language, let code):
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 0) {
                 if let lang = language {
-                    Text(lang)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .padding(.horizontal, 12)
-                        .padding(.top, 8)
+                    Text(lang.uppercased())
+                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                        .foregroundColor(Theme.contentSecondaryText.opacity(0.5))
+                        .padding(.horizontal, 16)
+                        .padding(.top, 12)
+                        .padding(.bottom, 8)
                 }
-                ScrollView(.horizontal, showsIndicators: true) {
+                ScrollView(.horizontal, showsIndicators: false) {
                     Text(code)
                         .font(.system(size: fontSize - 2, design: .monospaced))
+                        .foregroundColor(Theme.contentText.opacity(0.85))
                         .textSelection(.enabled)
-                        .padding(12)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, language == nil ? 16 : 8)
+                        .padding(.bottom, 8)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(nsColor: .textBackgroundColor).opacity(0.5))
-            .cornerRadius(8)
+            .background(Theme.contentSecondaryText.opacity(0.04))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+                    .stroke(Theme.contentSecondaryText.opacity(0.08), lineWidth: 1)
             )
 
         case .image(let alt, let url):
@@ -478,40 +589,44 @@ struct MarkdownContentView: View {
                     case .empty:
                         HStack {
                             ProgressView()
-                                .scaleEffect(0.5)
-                            Text("Loading image...")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                                .progressViewStyle(CircularProgressViewStyle(tint: Theme.contentSecondaryText))
+                                .scaleEffect(0.6)
+                            Text("Loading...")
+                                .font(.system(size: 12))
+                                .foregroundColor(Theme.contentSecondaryText)
                         }
                         .frame(maxWidth: .infinity)
-                        .frame(height: 100)
-                        .background(Color.secondary.opacity(0.1))
-                        .cornerRadius(8)
+                        .frame(height: 120)
+                        .background(Theme.contentSecondaryText.opacity(0.04))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+
                     case .success(let image):
-                        VStack(spacing: 4) {
+                        VStack(spacing: 8) {
                             image
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
-                                .cornerRadius(8)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
                             if !alt.isEmpty {
                                 Text(alt)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
+                                    .font(.system(size: 12))
+                                    .foregroundColor(Theme.contentSecondaryText)
                             }
                         }
+
                     case .failure:
-                        VStack(spacing: 4) {
+                        VStack(spacing: 8) {
                             Image(systemName: "photo")
-                                .font(.largeTitle)
-                                .foregroundColor(.secondary)
-                            Text(alt.isEmpty ? "Failed to load image" : alt)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                                .font(.system(size: 32, weight: .light))
+                                .foregroundColor(Theme.contentSecondaryText.opacity(0.4))
+                            Text(alt.isEmpty ? "Failed to load" : alt)
+                                .font(.system(size: 12))
+                                .foregroundColor(Theme.contentSecondaryText)
                         }
                         .frame(maxWidth: .infinity)
-                        .frame(height: 100)
-                        .background(Color.secondary.opacity(0.1))
-                        .cornerRadius(8)
+                        .frame(height: 120)
+                        .background(Theme.contentSecondaryText.opacity(0.04))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+
                     @unknown default:
                         EmptyView()
                     }
@@ -519,21 +634,19 @@ struct MarkdownContentView: View {
             }
 
         case .horizontalRule:
-            Divider()
-                .padding(.vertical, 16)
+            Rectangle()
+                .fill(Theme.contentSecondaryText.opacity(0.15))
+                .frame(height: 1)
+                .padding(.vertical, 24)
         }
     }
 
     private func processInlineMarkdown(_ text: String) -> AttributedString {
-        // Try using native markdown parsing first
         if let attributed = try? AttributedString(markdown: text, options: AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)) {
             return attributed
         }
 
-        // Fallback to manual processing
         var result = text
-
-        // Remove markdown links, keep text
         result = result.replacingOccurrences(
             of: #"\[([^\]]+)\]\([^\)]+\)"#,
             with: "$1",

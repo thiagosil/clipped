@@ -19,6 +19,7 @@
 		1A000000000000000000000A /* ReadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000001A /* ReadingView.swift */; };
 		1A000000000000000000000B /* ReadingSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000001B /* ReadingSettingsView.swift */; };
 		1A000000000000000000000C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000001C /* Assets.xcassets */; };
+		1A000000000000000000000D /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000001E /* Theme.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -36,6 +37,7 @@
 		1A000000000000000000001B /* ReadingSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingSettingsView.swift; sourceTree = "<group>"; };
 		1A000000000000000000001C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1A000000000000000000001D /* MarkdownReader.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MarkdownReader.entitlements; sourceTree = "<group>"; };
+		1A000000000000000000001E /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -62,6 +64,7 @@
 			children = (
 				1A0000000000000000000011 /* MarkdownReaderApp.swift */,
 				1A0000000000000000000012 /* AppState.swift */,
+				1A000000000000000000001E /* Theme.swift */,
 				1A0000000000000000000032 /* Models */,
 				1A0000000000000000000033 /* Services */,
 				1A0000000000000000000034 /* Views */,
@@ -180,6 +183,7 @@
 			files = (
 				1A0000000000000000000001 /* MarkdownReaderApp.swift in Sources */,
 				1A0000000000000000000002 /* AppState.swift in Sources */,
+				1A000000000000000000000D /* Theme.swift in Sources */,
 				1A0000000000000000000003 /* Article.swift in Sources */,
 				1A0000000000000000000004 /* ReadingProgress.swift in Sources */,
 				1A0000000000000000000005 /* ReadingSettings.swift in Sources */,
