@@ -36,6 +36,7 @@ actor ArticleService {
         let sourceURL = extractSourceURL(from: frontmatter)
         let publishedDate = extractPublishedDate(from: frontmatter)
         let wordCount = countWords(in: bodyContent)
+        let tags = extractTags(from: frontmatter, content: bodyContent)
 
         return Article(
             id: fileURL.lastPathComponent,
@@ -46,7 +47,8 @@ actor ArticleService {
             content: bodyContent,
             filePath: fileURL,
             dateAdded: dateAdded,
-            wordCount: wordCount
+            wordCount: wordCount,
+            tags: tags
         )
     }
 
@@ -105,7 +107,16 @@ actor ArticleService {
 
                 if !value.isEmpty {
                     let cleanValue = value.trimmingCharacters(in: CharacterSet(charactersIn: "\"'"))
-                    result[key] = cleanValue
+                    // Check for inline array format: [tag1, tag2, tag3]
+                    if cleanValue.hasPrefix("[") && cleanValue.hasSuffix("]") {
+                        let innerContent = String(cleanValue.dropFirst().dropLast())
+                        let items = innerContent.components(separatedBy: ",")
+                            .map { $0.trimmingCharacters(in: .whitespaces).trimmingCharacters(in: CharacterSet(charactersIn: "\"'")) }
+                            .filter { !$0.isEmpty }
+                        result[key] = items
+                    } else {
+                        result[key] = cleanValue
+                    }
                 }
             }
         }
@@ -164,6 +175,41 @@ actor ArticleService {
         }
 
         return nil
+    }
+
+    private func extractTags(from frontmatter: [String: Any], content: String) -> [String] {
+        var tags = Set<String>()
+
+        // Extract from frontmatter "tags" field
+        if let frontmatterTags = frontmatter["tags"] as? [String] {
+            for tag in frontmatterTags {
+                tags.insert(tag.trimmingCharacters(in: .whitespaces))
+            }
+        } else if let tagString = frontmatter["tags"] as? String {
+            // Handle comma-separated string format: "tag1, tag2, tag3"
+            let parsedTags = tagString.components(separatedBy: ",")
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }
+            for tag in parsedTags {
+                tags.insert(tag)
+            }
+        }
+
+        // Extract Obsidian-style hashtags from content (e.g., #technology, #programming)
+        // Pattern: # followed by word characters, but not at beginning of line (headers)
+        // Also avoid matching inside code blocks or URLs
+        let hashtagPattern = #"(?<![#\w/])#([a-zA-Z][a-zA-Z0-9_-]*)"#
+        if let regex = try? NSRegularExpression(pattern: hashtagPattern, options: []) {
+            let matches = regex.matches(in: content, options: [], range: NSRange(content.startIndex..., in: content))
+            for match in matches {
+                if let range = Range(match.range(at: 1), in: content) {
+                    let tag = String(content[range])
+                    tags.insert(tag)
+                }
+            }
+        }
+
+        return Array(tags).sorted()
     }
 
     private func countWords(in content: String) -> Int {

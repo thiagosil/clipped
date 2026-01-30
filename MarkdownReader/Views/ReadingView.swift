@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct ReadingView: View {
     let article: Article
@@ -7,12 +8,19 @@ struct ReadingView: View {
 
     @State private var scrollPosition: Double = 0
     @State private var showSettings = false
+    @State private var lastKeyPress: (key: Character, time: Date)?
+    @State private var nsScrollView: NSScrollView?
 
     var body: some View {
         GeometryReader { geometry in
             ScrollViewReader { scrollProxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
+                        // Top anchor for scroll navigation
+                        Color.clear
+                            .frame(height: 1)
+                            .id("top")
+
                         // Header
                         VStack(alignment: .center, spacing: 8) {
                             Text(article.title)
@@ -45,6 +53,11 @@ struct ReadingView: View {
                             fontDesign: settings.fontDesign,
                             lineSpacing: settings.lineSpacing
                         )
+
+                        // Bottom anchor for scroll navigation
+                        Color.clear
+                            .frame(height: 1)
+                            .id("bottom")
                     }
                     .padding(.horizontal, max(40, (geometry.size.width - settings.contentWidth) / 2))
                     .padding(.vertical, 40)
@@ -54,13 +67,17 @@ struct ReadingView: View {
                             value: contentGeometry.frame(in: .named("scroll")).minY
                         )
                     })
+                    .background(NSScrollViewFinder(scrollView: $nsScrollView))
                 }
                 .coordinateSpace(name: "scroll")
                 .onPreferenceChange(ScrollOffsetPreferenceKey.self) { offset in
                     updateScrollPosition(offset: offset, height: geometry.size.height)
                 }
                 .onAppear {
-                    restoreScrollPosition()
+                    restoreScrollPosition(scrollProxy: scrollProxy, viewHeight: geometry.size.height)
+                }
+                .onKeyPress { keyPress in
+                    handleKeyPress(keyPress, scrollProxy: scrollProxy, viewHeight: geometry.size.height)
                 }
             }
         }
@@ -95,6 +112,102 @@ struct ReadingView: View {
         }
     }
 
+    private func handleKeyPress(_ keyPress: KeyPress, scrollProxy: ScrollViewProxy, viewHeight: CGFloat) -> KeyPress.Result {
+        let key = keyPress.characters.first
+
+        switch keyPress.key {
+        case .escape:
+            appState.selectedArticle = nil
+            return .handled
+
+        case .space:
+            if keyPress.modifiers.contains(.shift) {
+                scrollPage(up: true, viewHeight: viewHeight)
+            } else {
+                scrollPage(up: false, viewHeight: viewHeight)
+            }
+            return .handled
+
+        case .downArrow:
+            scrollIncrement(up: false)
+            return .handled
+
+        case .upArrow:
+            scrollIncrement(up: true)
+            return .handled
+
+        default:
+            break
+        }
+
+        // Letter keys
+        if let key = key {
+            switch key {
+            case "j":
+                scrollIncrement(up: false)
+                return .handled
+
+            case "k":
+                scrollIncrement(up: true)
+                return .handled
+
+            case "g":
+                // Check for double-tap
+                if let last = lastKeyPress, last.key == "g",
+                   Date().timeIntervalSince(last.time) < 0.5 {
+                    withAnimation {
+                        scrollProxy.scrollTo("top", anchor: .top)
+                    }
+                    lastKeyPress = nil
+                } else {
+                    lastKeyPress = ("g", Date())
+                }
+                return .handled
+
+            case "G":
+                withAnimation {
+                    scrollProxy.scrollTo("bottom", anchor: .bottom)
+                }
+                return .handled
+
+            default:
+                break
+            }
+        }
+
+        return .ignored
+    }
+
+    private func scrollPage(up: Bool, viewHeight: CGFloat) {
+        guard let scrollView = nsScrollView else { return }
+        let pageHeight = viewHeight - 50 // Leave some overlap
+        let currentY = scrollView.contentView.bounds.origin.y
+        let newY = up ? currentY - pageHeight : currentY + pageHeight
+        let clampedY = max(0, min(newY, scrollView.documentView!.bounds.height - viewHeight))
+
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.2
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            scrollView.contentView.animator().setBoundsOrigin(NSPoint(x: 0, y: clampedY))
+        }
+        scrollView.reflectScrolledClipView(scrollView.contentView)
+    }
+
+    private func scrollIncrement(up: Bool) {
+        guard let scrollView = nsScrollView else { return }
+        let increment: CGFloat = 60
+        let currentY = scrollView.contentView.bounds.origin.y
+        let newY = up ? currentY - increment : currentY + increment
+        let maxY = scrollView.documentView!.bounds.height - scrollView.contentView.bounds.height
+        let clampedY = max(0, min(newY, maxY))
+
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.1
+            scrollView.contentView.animator().setBoundsOrigin(NSPoint(x: 0, y: clampedY))
+        }
+        scrollView.reflectScrolledClipView(scrollView.contentView)
+    }
+
     private func updateScrollPosition(offset: CGFloat, height: CGFloat) {
         // Calculate percentage based on scroll offset
         let percentage = min(100, max(0, -offset / (height * 2) * 100))
@@ -104,10 +217,53 @@ struct ReadingView: View {
         appState.saveProgress(for: article, percentage: percentage, scrollPosition: offset)
     }
 
-    private func restoreScrollPosition() {
+    private func restoreScrollPosition(scrollProxy: ScrollViewProxy, viewHeight: CGFloat) {
         if let progress = appState.getProgress(for: article) {
             scrollPosition = progress.percentage
+
+            // Use a slight delay to ensure the scroll view is ready
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                if let scrollView = nsScrollView {
+                    let targetY = -progress.scrollPosition
+                    let maxY = scrollView.documentView!.bounds.height - scrollView.contentView.bounds.height
+                    let clampedY = max(0, min(targetY, maxY))
+                    scrollView.contentView.setBoundsOrigin(NSPoint(x: 0, y: clampedY))
+                    scrollView.reflectScrolledClipView(scrollView.contentView)
+                }
+            }
         }
+    }
+}
+
+// Helper to find the underlying NSScrollView
+struct NSScrollViewFinder: NSViewRepresentable {
+    @Binding var scrollView: NSScrollView?
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async {
+            self.scrollView = findScrollView(in: view)
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        DispatchQueue.main.async {
+            if self.scrollView == nil {
+                self.scrollView = findScrollView(in: nsView)
+            }
+        }
+    }
+
+    private func findScrollView(in view: NSView) -> NSScrollView? {
+        var current: NSView? = view
+        while let view = current {
+            if let scrollView = view as? NSScrollView {
+                return scrollView
+            }
+            current = view.superview
+        }
+        return nil
     }
 }
 
@@ -126,8 +282,9 @@ struct MarkdownContentView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: lineSpacing) {
-            ForEach(Array(parseContent().enumerated()), id: \.offset) { _, element in
+            ForEach(Array(parseContent().enumerated()), id: \.offset) { index, element in
                 renderElement(element)
+                    .id("element-\(index)")
             }
         }
     }
@@ -136,9 +293,67 @@ struct MarkdownContentView: View {
         var elements: [MarkdownElement] = []
         let lines = content.components(separatedBy: "\n")
         var currentParagraph = ""
+        var inCodeBlock = false
+        var codeBlockLanguage: String?
+        var codeBlockContent = ""
 
         for line in lines {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
+
+            // Code block handling
+            if trimmed.hasPrefix("```") {
+                if inCodeBlock {
+                    // End code block
+                    elements.append(.codeBlock(language: codeBlockLanguage, code: codeBlockContent))
+                    codeBlockContent = ""
+                    codeBlockLanguage = nil
+                    inCodeBlock = false
+                } else {
+                    // Start code block
+                    if !currentParagraph.isEmpty {
+                        elements.append(.paragraph(currentParagraph))
+                        currentParagraph = ""
+                    }
+                    let lang = String(trimmed.dropFirst(3)).trimmingCharacters(in: .whitespaces)
+                    codeBlockLanguage = lang.isEmpty ? nil : lang
+                    inCodeBlock = true
+                }
+                continue
+            }
+
+            if inCodeBlock {
+                if !codeBlockContent.isEmpty {
+                    codeBlockContent += "\n"
+                }
+                codeBlockContent += line
+                continue
+            }
+
+            // Horizontal rules
+            if trimmed == "---" || trimmed == "***" || trimmed == "___" {
+                if !currentParagraph.isEmpty {
+                    elements.append(.paragraph(currentParagraph))
+                    currentParagraph = ""
+                }
+                elements.append(.horizontalRule)
+                continue
+            }
+
+            // Images
+            if let imageMatch = trimmed.range(of: #"!\[([^\]]*)\]\(([^\)]+)\)"#, options: .regularExpression) {
+                if !currentParagraph.isEmpty {
+                    elements.append(.paragraph(currentParagraph))
+                    currentParagraph = ""
+                }
+                let imageText = String(trimmed[imageMatch])
+                if let altMatch = imageText.range(of: #"\[([^\]]*)\]"#, options: .regularExpression),
+                   let urlMatch = imageText.range(of: #"\(([^\)]+)\)"#, options: .regularExpression) {
+                    let alt = String(imageText[altMatch]).dropFirst().dropLast()
+                    let url = String(imageText[urlMatch]).dropFirst().dropLast()
+                    elements.append(.image(alt: String(alt), url: String(url)))
+                }
+                continue
+            }
 
             if trimmed.isEmpty {
                 if !currentParagraph.isEmpty {
@@ -158,15 +373,6 @@ struct MarkdownContentView: View {
                 let level = headerText.prefix(while: { $0 == "#" }).count
                 let text = String(headerText.dropFirst(level)).trimmingCharacters(in: .whitespaces)
                 elements.append(.header(level: level, text: text))
-                continue
-            }
-
-            // Code blocks
-            if trimmed.hasPrefix("```") {
-                if !currentParagraph.isEmpty {
-                    elements.append(.paragraph(currentParagraph))
-                    currentParagraph = ""
-                }
                 continue
             }
 
@@ -240,10 +446,91 @@ struct MarkdownContentView: View {
                     .foregroundColor(.secondary)
             }
             .padding(.vertical, 4)
+
+        case .codeBlock(let language, let code):
+            VStack(alignment: .leading, spacing: 4) {
+                if let lang = language {
+                    Text(lang)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 12)
+                        .padding(.top, 8)
+                }
+                ScrollView(.horizontal, showsIndicators: true) {
+                    Text(code)
+                        .font(.system(size: fontSize - 2, design: .monospaced))
+                        .textSelection(.enabled)
+                        .padding(12)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color(nsColor: .textBackgroundColor).opacity(0.5))
+            .cornerRadius(8)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+            )
+
+        case .image(let alt, let url):
+            if let imageURL = URL(string: url) {
+                AsyncImage(url: imageURL) { phase in
+                    switch phase {
+                    case .empty:
+                        HStack {
+                            ProgressView()
+                                .scaleEffect(0.5)
+                            Text("Loading image...")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 100)
+                        .background(Color.secondary.opacity(0.1))
+                        .cornerRadius(8)
+                    case .success(let image):
+                        VStack(spacing: 4) {
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .cornerRadius(8)
+                            if !alt.isEmpty {
+                                Text(alt)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    case .failure:
+                        VStack(spacing: 4) {
+                            Image(systemName: "photo")
+                                .font(.largeTitle)
+                                .foregroundColor(.secondary)
+                            Text(alt.isEmpty ? "Failed to load image" : alt)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 100)
+                        .background(Color.secondary.opacity(0.1))
+                        .cornerRadius(8)
+                    @unknown default:
+                        EmptyView()
+                    }
+                }
+            }
+
+        case .horizontalRule:
+            Divider()
+                .padding(.vertical, 16)
         }
     }
 
     private func processInlineMarkdown(_ text: String) -> AttributedString {
+        // Try using native markdown parsing first
+        if let attributed = try? AttributedString(markdown: text, options: AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)) {
+            return attributed
+        }
+
+        // Fallback to manual processing
         var result = text
 
         // Remove markdown links, keep text
@@ -253,9 +540,7 @@ struct MarkdownContentView: View {
             options: .regularExpression
         )
 
-        // Convert to AttributedString (basic - could be enhanced)
-        let attributed = AttributedString(result)
-        return attributed
+        return AttributedString(result)
     }
 }
 
@@ -264,4 +549,7 @@ enum MarkdownElement {
     case paragraph(String)
     case listItem(String)
     case blockquote(String)
+    case codeBlock(language: String?, code: String)
+    case image(alt: String, url: String)
+    case horizontalRule
 }

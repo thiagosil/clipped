@@ -9,8 +9,26 @@ struct MarkdownReaderApp: App {
             ContentView()
                 .environmentObject(appState)
         }
+        .defaultSize(width: 1200, height: 800)
         .commands {
             CommandGroup(replacing: .newItem) { }
+
+            CommandGroup(after: .sidebar) {
+                Button("Back to Library") {
+                    appState.selectedArticle = nil
+                }
+                .keyboardShortcut("[", modifiers: .command)
+                .disabled(appState.selectedArticle == nil)
+
+                Divider()
+
+                Button("Refresh Articles") {
+                    Task {
+                        await appState.loadArticles()
+                    }
+                }
+                .keyboardShortcut("r", modifiers: .command)
+            }
         }
     }
 }

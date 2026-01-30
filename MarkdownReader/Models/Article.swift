@@ -10,6 +10,7 @@ struct Article: Identifiable, Equatable, Hashable {
     let filePath: URL
     let dateAdded: Date
     let wordCount: Int
+    let tags: [String]
 
     var readingProgress: Double?
     var scrollPosition: Double?

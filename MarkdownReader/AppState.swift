@@ -7,6 +7,8 @@ class AppState: ObservableObject {
     @Published var isLoading = false
     @Published var searchText = ""
     @Published var sortOrder: SortOrder = .dateAdded
+    @Published var selectedTags: Set<String> = []
+    @Published var loadError: ArticleServiceError?
 
     private let articleService = ArticleService()
     private let progressStore = ReadingProgressStore()
@@ -17,16 +19,31 @@ class AppState: ObservableObject {
         case progress = "Progress"
     }
 
+    var allTags: [String] {
+        let tagSet = Set(articles.flatMap { $0.tags })
+        return Array(tagSet).sorted()
+    }
+
     var filteredArticles: [Article] {
         var result = articles
 
+        // Filter by search text
         if !searchText.isEmpty {
             result = result.filter { article in
                 article.title.localizedCaseInsensitiveContains(searchText) ||
-                (article.author?.localizedCaseInsensitiveContains(searchText) ?? false)
+                (article.author?.localizedCaseInsensitiveContains(searchText) ?? false) ||
+                article.tags.contains { $0.localizedCaseInsensitiveContains(searchText) }
             }
         }
 
+        // Filter by selected tags
+        if !selectedTags.isEmpty {
+            result = result.filter { article in
+                !selectedTags.isDisjoint(with: Set(article.tags))
+            }
+        }
+
+        // Sort results
         switch sortOrder {
         case .dateAdded:
             result.sort { $0.dateAdded > $1.dateAdded }
@@ -41,6 +58,7 @@ class AppState: ObservableObject {
 
     func loadArticles() async {
         isLoading = true
+        loadError = nil
         defer { isLoading = false }
 
         do {
@@ -55,6 +73,9 @@ class AppState: ObservableObject {
             }
 
             articles = loadedArticles
+        } catch let error as ArticleServiceError {
+            loadError = error
+            print("Error loading articles: \(error)")
         } catch {
             print("Error loading articles: \(error)")
         }
@@ -75,5 +96,17 @@ class AppState: ObservableObject {
 
     func getProgress(for article: Article) -> ReadingProgress? {
         progressStore.getProgress(for: article.id)
+    }
+
+    func toggleTag(_ tag: String) {
+        if selectedTags.contains(tag) {
+            selectedTags.remove(tag)
+        } else {
+            selectedTags.insert(tag)
+        }
+    }
+
+    func clearTagFilters() {
+        selectedTags.removeAll()
     }
 }
