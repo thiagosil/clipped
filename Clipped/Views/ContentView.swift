@@ -43,24 +43,59 @@ struct ContentView: View {
     }
 
     private var resizeHandle: some View {
-        Rectangle()
-            .fill(Color.black.opacity(0.3))
-            .frame(width: 1)
-            .contentShape(Rectangle().inset(by: -3))
-            .gesture(
-                DragGesture()
-                    .onChanged { value in
-                        let newWidth = sidebarWidth + value.translation.width
-                        sidebarWidth = max(280, min(500, newWidth))
+        ResizeHandle(sidebarWidth: $sidebarWidth)
+    }
+}
+
+// MARK: - Resize Handle
+
+struct ResizeHandle: View {
+    @Binding var sidebarWidth: CGFloat
+    @State private var isHovering = false
+    @State private var isDragging = false
+
+    var body: some View {
+        ZStack {
+            // Base divider line
+            Rectangle()
+                .fill(Color.black.opacity(isHovering || isDragging ? 0.5 : 0.3))
+                .frame(width: 2)
+
+            // Grip indicator on hover
+            if isHovering || isDragging {
+                VStack(spacing: 2) {
+                    ForEach(0..<3, id: \.self) { _ in
+                        Capsule()
+                            .fill(Color.white.opacity(0.6))
+                            .frame(width: 4, height: 4)
                     }
-            )
-            .onHover { hovering in
-                if hovering {
-                    NSCursor.resizeLeftRight.push()
-                } else {
-                    NSCursor.pop()
                 }
+                .transition(.opacity.combined(with: .scale(scale: 0.8)))
             }
+        }
+        .frame(width: 8)
+        .contentShape(Rectangle())
+        .gesture(
+            DragGesture()
+                .onChanged { value in
+                    isDragging = true
+                    let newWidth = sidebarWidth + value.translation.width
+                    sidebarWidth = max(280, min(500, newWidth))
+                }
+                .onEnded { _ in
+                    isDragging = false
+                }
+        )
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.15)) {
+                isHovering = hovering
+            }
+            if hovering {
+                NSCursor.resizeLeftRight.push()
+            } else {
+                NSCursor.pop()
+            }
+        }
     }
 }
 
