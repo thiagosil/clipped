@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 
 @main
-struct MarkdownReaderApp: App {
+struct ClippedApp: App {
     @StateObject private var appState = AppState()
 
     var body: some Scene {

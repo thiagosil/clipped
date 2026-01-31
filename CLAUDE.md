@@ -6,19 +6,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # Build the app from command line
-cd MarkdownReader
-xcodebuild -scheme MarkdownReader -configuration Debug build
+cd Clipped
+xcodebuild -scheme Clipped -configuration Debug build
 
 # Build for release
-xcodebuild -scheme MarkdownReader -configuration Release build
+xcodebuild -scheme Clipped -configuration Release build
 
 # Open in Xcode
-open MarkdownReader/MarkdownReader.xcodeproj
+open Clipped.xcodeproj
 ```
 
 ## Architecture Overview
 
-MarkdownReader is a native macOS SwiftUI app for reading markdown articles saved from Obsidian. It reads from a hardcoded folder path (`/Users/thiago/Documents/ObsidianPKM/Clippings`).
+Clipped is a native macOS SwiftUI app for reading markdown articles saved from Obsidian. It reads from a hardcoded folder path (`/Users/thiago/Documents/ObsidianPKM/Clippings`).
 
 ### Key Components
 
@@ -40,7 +40,7 @@ MarkdownReader is a native macOS SwiftUI app for reading markdown articles saved
 ### View Hierarchy
 
 ```
-MarkdownReaderApp
+ClippedApp
 └── ContentView (split view with resize handle)
     ├── LibraryView (sidebar - article list, search, tag filter)
     └── ReadingView (main content - markdown rendering)
