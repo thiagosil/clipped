@@ -10,6 +10,7 @@ class AppState: ObservableObject {
     @Published var selectedTags: Set<String> = []
     @Published var loadError: ArticleServiceError?
     @Published var collapsedSections: Set<SmartSurface> = [.theStack]
+    @Published var showKeyboardShortcuts = false
 
     private let articleService = ArticleService()
     private let progressStore = ReadingProgressStore()

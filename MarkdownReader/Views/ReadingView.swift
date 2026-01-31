@@ -302,6 +302,10 @@ struct ReadingView: View {
                 }
                 return .handled
 
+            case "?":
+                appState.showKeyboardShortcuts = true
+                return .handled
+
             default:
                 break
             }
