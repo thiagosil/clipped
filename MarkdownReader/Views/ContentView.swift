@@ -34,6 +34,7 @@ struct ContentView: View {
                     EmptyContentView()
                 }
             }
+            .transaction { $0.animation = nil }
         }
         .task {
             await appState.loadArticles()

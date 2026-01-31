@@ -474,16 +474,24 @@ struct MarkdownContentView: View {
     let fontDesign: Font.Design
     let lineSpacing: CGFloat
 
+    @State private var elements: [MarkdownElement] = []
+
     var body: some View {
         VStack(alignment: .leading, spacing: lineSpacing + 4) {
-            ForEach(Array(parseContent().enumerated()), id: \.offset) { index, element in
+            ForEach(Array(elements.enumerated()), id: \.offset) { index, element in
                 renderElement(element)
                     .id("element-\(index)")
             }
         }
+        .onAppear {
+            elements = Self.parseContent(content)
+        }
+        .onChange(of: content) { _, newContent in
+            elements = Self.parseContent(newContent)
+        }
     }
 
-    private func parseContent() -> [MarkdownElement] {
+    private static func parseContent(_ content: String) -> [MarkdownElement] {
         var elements: [MarkdownElement] = []
         let lines = content.components(separatedBy: "\n")
         var currentParagraph = ""
