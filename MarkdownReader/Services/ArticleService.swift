@@ -1,14 +1,12 @@
 import Foundation
 
 actor ArticleService {
-    private let clippingsPath = "/Users/thiago/Documents/ObsidianPKM/Clippings"
-
-    func loadArticles() throws -> [Article] {
-        let folderURL = URL(fileURLWithPath: clippingsPath)
+    func loadArticles(from folderPath: String) throws -> [Article] {
+        let folderURL = URL(fileURLWithPath: folderPath)
         let fileManager = FileManager.default
 
-        guard fileManager.fileExists(atPath: clippingsPath) else {
-            throw ArticleServiceError.folderNotFound
+        guard fileManager.fileExists(atPath: folderPath) else {
+            throw ArticleServiceError.folderNotFound(folderPath)
         }
 
         let contents = try fileManager.contentsOfDirectory(
@@ -220,6 +218,7 @@ actor ArticleService {
 }
 
 enum ArticleServiceError: Error {
-    case folderNotFound
+    case noFolderConfigured
+    case folderNotFound(String)
     case parsingError
 }

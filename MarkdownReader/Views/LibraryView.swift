@@ -347,31 +347,69 @@ struct LibraryView: View {
 
     private func errorView(for error: ArticleServiceError) -> some View {
         VStack(spacing: 12) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 36, weight: .light))
-                .foregroundColor(Theme.accent)
-
             switch error {
-            case .folderNotFound:
+            case .noFolderConfigured:
+                Image(systemName: "folder.badge.questionmark")
+                    .font(.system(size: 36, weight: .light))
+                    .foregroundColor(Theme.listTertiaryText)
+
+                Text("No folder selected")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(Theme.listSecondaryText)
+
+                Text("Choose a folder containing your markdown articles")
+                    .font(.system(size: 12))
+                    .foregroundColor(Theme.listTertiaryText)
+                    .multilineTextAlignment(.center)
+
+                Button("Choose Folder...") {
+                    appState.selectFolder()
+                }
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(Theme.accent)
+                .padding(.top, 4)
+                .buttonStyle(.plain)
+
+            case .folderNotFound(let path):
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.system(size: 36, weight: .light))
+                    .foregroundColor(Theme.accent)
+
                 Text("Folder not found")
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(Theme.listSecondaryText)
-                Text("~/Documents/ObsidianPKM/Clippings")
+
+                Text(path)
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundColor(Theme.listTertiaryText)
+                    .lineLimit(2)
+                    .truncationMode(.middle)
+
+                Button("Choose Different Folder...") {
+                    appState.selectFolder()
+                }
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(Theme.accent)
+                .padding(.top, 4)
+                .buttonStyle(.plain)
+
             case .parsingError:
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.system(size: 36, weight: .light))
+                    .foregroundColor(Theme.accent)
+
                 Text("Error reading articles")
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(Theme.listSecondaryText)
-            }
 
-            Button("Try Again") {
-                Task { await appState.loadArticles() }
+                Button("Try Again") {
+                    Task { await appState.loadArticles() }
+                }
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(Theme.accent)
+                .padding(.top, 4)
+                .buttonStyle(.plain)
             }
-            .font(.system(size: 12, weight: .medium))
-            .foregroundColor(Theme.accent)
-            .padding(.top, 4)
-            .buttonStyle(.plain)
         }
         .padding(32)
         .frame(maxWidth: .infinity, maxHeight: .infinity)

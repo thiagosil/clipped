@@ -6,20 +6,20 @@ struct ContentView: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            // Sidebar with article list
+            // Sidebar with article list - always in hierarchy, width animates to 0
+            VStack(spacing: 0) {
+                // Window drag area (for traffic lights)
+                WindowDragArea()
+                    .frame(height: 28)
+                    .background(Theme.listBackground)
+
+                LibraryView()
+            }
+            .frame(width: appState.sidebarVisible ? sidebarWidth : 0)
+            .clipped()
+
+            // Resize handle
             if appState.sidebarVisible {
-                VStack(spacing: 0) {
-                    // Window drag area (for traffic lights)
-                    WindowDragArea()
-                        .frame(height: 28)
-                        .background(Theme.listBackground)
-
-                    LibraryView()
-                }
-                .frame(width: sidebarWidth)
-                .transition(.move(edge: .leading))
-
-                // Resize handle
                 resizeHandle
             }
 
@@ -35,7 +35,6 @@ struct ContentView: View {
                 }
             }
         }
-        .animation(.easeInOut(duration: 0.2), value: appState.sidebarVisible)
         .task {
             await appState.loadArticles()
         }

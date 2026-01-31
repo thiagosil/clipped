@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 @MainActor
 class AppState: ObservableObject {
@@ -15,6 +16,7 @@ class AppState: ObservableObject {
 
     private let articleService = ArticleService()
     private let progressStore = ReadingProgressStore()
+    let folderSettings = FolderSettingsStore()
 
     enum SortOrder: String, CaseIterable {
         case dateAdded = "Date Added"
@@ -93,8 +95,13 @@ class AppState: ObservableObject {
         loadError = nil
         defer { isLoading = false }
 
+        guard let folderPath = folderSettings.folderPath else {
+            loadError = .noFolderConfigured
+            return
+        }
+
         do {
-            var loadedArticles = try await articleService.loadArticles()
+            var loadedArticles = try await articleService.loadArticles(from: folderPath)
 
             // Load reading progress for each article
             for i in loadedArticles.indices {
@@ -185,5 +192,25 @@ class AppState: ObservableObject {
         // Find next unread after current position
         let afterCurrent = filteredArticles.suffix(from: filteredArticles.index(after: currentIndex))
         return afterCurrent.first { ($0.readingProgress ?? 0) < 100 } ?? unread.first
+    }
+
+    func selectFolder() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.message = "Choose a folder containing your markdown articles"
+        panel.prompt = "Choose"
+
+        if let currentPath = folderSettings.folderPath {
+            panel.directoryURL = URL(fileURLWithPath: currentPath).deletingLastPathComponent()
+        }
+
+        if panel.runModal() == .OK, let url = panel.url {
+            folderSettings.folderPath = url.path
+            Task {
+                await loadArticles()
+            }
+        }
     }
 }

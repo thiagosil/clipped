@@ -19,11 +19,18 @@ struct MarkdownReaderApp: App {
         .defaultSize(width: 1200, height: 800)
         .windowStyle(.hiddenTitleBar)
         .commands {
-            CommandGroup(replacing: .newItem) { }
+            CommandGroup(replacing: .newItem) {
+                Button("Choose Folder...") {
+                    appState.selectFolder()
+                }
+                .keyboardShortcut("o", modifiers: .command)
+            }
 
             CommandGroup(after: .sidebar) {
                 Button(appState.sidebarVisible ? "Hide Sidebar" : "Show Sidebar") {
-                    appState.sidebarVisible.toggle()
+                    withAnimation(.easeOut(duration: 0.15)) {
+                        appState.sidebarVisible.toggle()
+                    }
                 }
                 .keyboardShortcut("b", modifiers: .command)
 
