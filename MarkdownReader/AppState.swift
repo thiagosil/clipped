@@ -9,6 +9,7 @@ class AppState: ObservableObject {
     @Published var sortOrder: SortOrder = .dateAdded
     @Published var selectedTags: Set<String> = []
     @Published var loadError: ArticleServiceError?
+    @Published var collapsedSections: Set<SmartSurface> = [.theStack]
 
     private let articleService = ArticleService()
     private let progressStore = ReadingProgressStore()
@@ -17,6 +18,12 @@ class AppState: ObservableObject {
         case dateAdded = "Date Added"
         case title = "Title"
         case progress = "Progress"
+    }
+
+    enum SmartSurface: String, CaseIterable {
+        case continueReading = "Continue"
+        case quickWins = "Quick Wins"
+        case theStack = "The Stack"
     }
 
     var allTags: [String] {
@@ -56,6 +63,29 @@ class AppState: ObservableObject {
         return result
     }
 
+    var continueReadingArticles: [Article] {
+        filteredArticles
+            .filter {
+                guard let progress = $0.readingProgress else { return false }
+                return progress > 0 && progress < 100
+            }
+            .sorted { ($0.readingProgress ?? 0) > ($1.readingProgress ?? 0) }
+    }
+
+    var quickWinsArticles: [Article] {
+        filteredArticles
+            .filter { $0.isUnread && $0.estimatedReadingTime <= 5 }
+            .sorted { $0.estimatedReadingTime < $1.estimatedReadingTime }
+    }
+
+    var theStackArticles: [Article] {
+        let continueIds = Set(continueReadingArticles.map { $0.id })
+        let quickWinIds = Set(quickWinsArticles.map { $0.id })
+        return filteredArticles.filter { article in
+            !continueIds.contains(article.id) && !quickWinIds.contains(article.id)
+        }
+    }
+
     func loadArticles() async {
         isLoading = true
         loadError = nil
@@ -73,6 +103,7 @@ class AppState: ObservableObject {
             }
 
             articles = loadedArticles
+            loadSectionState()
         } catch let error as ArticleServiceError {
             loadError = error
             print("Error loading articles: \(error)")
@@ -108,5 +139,49 @@ class AppState: ObservableObject {
 
     func clearTagFilters() {
         selectedTags.removeAll()
+    }
+
+    func toggleSection(_ section: SmartSurface) {
+        if collapsedSections.contains(section) {
+            collapsedSections.remove(section)
+        } else {
+            collapsedSections.insert(section)
+        }
+        saveSectionState()
+    }
+
+    func pickRandomArticle() -> Article? {
+        var pool: [Article] = []
+        pool.append(contentsOf: continueReadingArticles)
+        pool.append(contentsOf: continueReadingArticles)
+        pool.append(contentsOf: continueReadingArticles)
+        pool.append(contentsOf: quickWinsArticles)
+        pool.append(contentsOf: quickWinsArticles)
+        pool.append(contentsOf: theStackArticles)
+        return pool.randomElement()
+    }
+
+    private func saveSectionState() {
+        UserDefaults.standard.set(
+            collapsedSections.map { $0.rawValue },
+            forKey: "collapsedSections"
+        )
+    }
+
+    func loadSectionState() {
+        if let collapsed = UserDefaults.standard.stringArray(forKey: "collapsedSections") {
+            collapsedSections = Set(collapsed.compactMap { SmartSurface(rawValue: $0) })
+        }
+    }
+
+    func nextUnreadArticle(after current: Article?) -> Article? {
+        let unread = filteredArticles.filter { ($0.readingProgress ?? 0) < 100 }
+        guard let current = current,
+              let currentIndex = filteredArticles.firstIndex(where: { $0.id == current.id }) else {
+            return unread.first
+        }
+        // Find next unread after current position
+        let afterCurrent = filteredArticles.suffix(from: filteredArticles.index(after: currentIndex))
+        return afterCurrent.first { ($0.readingProgress ?? 0) < 100 } ?? unread.first
     }
 }

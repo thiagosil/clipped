@@ -59,9 +59,27 @@ The main screen showing all saved articles.
   - Estimated reading time (calculated from word count)
   - Reading progress indicator (percentage or "unread")
 
+**Smart Surfaces**:
+Articles are organized into three collapsible sections to reduce decision paralysis:
+
+| Section | Criteria | Sort Order |
+|---------|----------|------------|
+| **Continue** | 0 < readingProgress < 100 | Highest progress first |
+| **Quick Wins** | Unread + estimatedReadingTime ≤ 5 min | Shortest first |
+| **The Stack** | Everything else | Current sort order |
+
+- Sections are collapsible (The Stack collapsed by default)
+- Empty sections are hidden
+- Section collapse state persists across app restarts
+
+**Pick for Me**:
+- Shuffle button in header for random article selection
+- Weighted random: Continue (3x), Quick Wins (2x), The Stack (1x)
+- Selects and navigates to the chosen article
+
 **Organization**:
 - Filter by tags (if present in frontmatter or content)
-- Search by title/content
+- Search by title/content (filters across all sections)
 - Sort by: date added, title, reading progress
 
 **Actions**:
@@ -115,16 +133,22 @@ A collapsible sidebar showing:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  [Refresh]  [Search...]                    [Sort ▼]     │
+│  [#Tags]              [🔀 Pick] [Sort ▼] [Refresh]      │
+│  [Search...]                                            │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
-│  📄 Article Title                          12 min       │
-│     Author · source.com                    ████░░ 67%   │
+│  ▼ 📖 Continue (2)                                      │
+│  ├─ Article In Progress                    Today        │
+│  │    Author · source.com                               │
+│  └─ Another Article                        Yest         │
+│       Author · another.com                              │
 │                                                         │
-│  📄 Another Article                        5 min        │
-│     Author · another.com                   Unread       │
+│  ▼ ⚡ Quick Wins (3)                                    │
+│  ├─ Short Article                          Mon          │
+│  │    Author · site.com                                 │
+│  └─ ...                                                 │
 │                                                         │
-│  ...                                                    │
+│  ▶ 📚 The Stack (15)                                    │
 │                                                         │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -155,6 +179,7 @@ A collapsible sidebar showing:
 - Reading progress for each article (scroll position / percentage)
 - User preferences (font, size, etc.)
 - Article status (read/unread)
+- Smart surface section collapse states
 
 **What NOT to persist**:
 - Article content (always read from source .md files)

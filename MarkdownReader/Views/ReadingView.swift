@@ -10,6 +10,7 @@ struct ReadingView: View {
     @State private var showSettings = false
     @State private var lastKeyPress: (key: Character, time: Date)?
     @State private var nsScrollView: NSScrollView?
+    @State private var showCompletionCheck = false
 
     var body: some View {
         GeometryReader { geometry in
@@ -41,17 +42,9 @@ struct ReadingView: View {
                     .padding(.horizontal, max(48, (geometry.size.width - settings.contentWidth) / 2))
                     .padding(.top, 48)
                     .padding(.bottom, 80)
-                    .background(GeometryReader { contentGeometry in
-                        Color.clear.preference(
-                            key: ScrollOffsetPreferenceKey.self,
-                            value: contentGeometry.frame(in: .named("scroll")).minY
-                        )
-                    })
-                    .background(NSScrollViewFinder(scrollView: $nsScrollView))
-                }
-                .coordinateSpace(name: "scroll")
-                .onPreferenceChange(ScrollOffsetPreferenceKey.self) { offset in
-                    updateScrollPosition(offset: offset, height: geometry.size.height)
+                    .background(NSScrollViewFinder(scrollView: $nsScrollView, onScroll: { percentage in
+                        updateScrollProgress(percentage: percentage)
+                    }))
                 }
                 .onAppear {
                     restoreScrollPosition(scrollProxy: scrollProxy, viewHeight: geometry.size.height)
@@ -67,6 +60,11 @@ struct ReadingView: View {
         }
         .overlay(alignment: .bottom) {
             progressBar
+        }
+        .overlay {
+            if showCompletionCheck {
+                completionOverlay
+            }
         }
     }
 
@@ -215,6 +213,29 @@ struct ReadingView: View {
         }
     }
 
+    // MARK: - Completion Overlay
+
+    private var completionOverlay: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 48, weight: .medium))
+                .foregroundColor(Theme.progressComplete)
+                .scaleEffect(showCompletionCheck ? 1.0 : 0.5)
+                .opacity(showCompletionCheck ? 1.0 : 0)
+            Text("Complete")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(Theme.contentSecondaryText)
+                .opacity(showCompletionCheck ? 1.0 : 0)
+        }
+        .padding(24)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Theme.contentBackground)
+                .shadow(color: Color.black.opacity(0.15), radius: 20, x: 0, y: 4)
+        )
+        .transition(.scale.combined(with: .opacity))
+    }
+
     // MARK: - Key Handling
 
     private func handleKeyPress(_ keyPress: KeyPress, scrollProxy: ScrollViewProxy, viewHeight: CGFloat) -> KeyPress.Result {
@@ -275,6 +296,12 @@ struct ReadingView: View {
                 }
                 return .handled
 
+            case "n":
+                if let next = appState.nextUnreadArticle(after: article) {
+                    appState.selectedArticle = next
+                }
+                return .handled
+
             default:
                 break
             }
@@ -313,10 +340,22 @@ struct ReadingView: View {
         scrollView.reflectScrolledClipView(scrollView.contentView)
     }
 
-    private func updateScrollPosition(offset: CGFloat, height: CGFloat) {
-        let percentage = min(100, max(0, -offset / (height * 2) * 100))
+    private func updateScrollProgress(percentage: Double) {
+        // Detect transition to 100% completion
+        if percentage >= 100 && scrollPosition < 100 {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
+                showCompletionCheck = true
+            }
+            // Auto-hide after delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                withAnimation(.easeOut(duration: 0.3)) {
+                    showCompletionCheck = false
+                }
+            }
+        }
+
         scrollPosition = percentage
-        appState.saveProgress(for: article, percentage: percentage, scrollPosition: offset)
+        appState.saveProgress(for: article, percentage: percentage, scrollPosition: percentage)
     }
 
     private func restoreScrollPosition(scrollProxy: ScrollViewProxy, viewHeight: CGFloat) {
@@ -324,9 +363,12 @@ struct ReadingView: View {
             scrollPosition = progress.percentage
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                if let scrollView = nsScrollView {
-                    let targetY = -progress.scrollPosition
-                    let maxY = scrollView.documentView!.bounds.height - scrollView.contentView.bounds.height
+                if let scrollView = nsScrollView,
+                   let documentView = scrollView.documentView {
+                    let contentHeight = documentView.bounds.height
+                    let viewportHeight = scrollView.contentView.bounds.height
+                    let maxY = max(0, contentHeight - viewportHeight)
+                    let targetY = (progress.percentage / 100.0) * maxY
                     let clampedY = max(0, min(targetY, maxY))
                     scrollView.contentView.setBoundsOrigin(NSPoint(x: 0, y: clampedY))
                     scrollView.reflectScrolledClipView(scrollView.contentView)
@@ -340,21 +382,30 @@ struct ReadingView: View {
 
 struct NSScrollViewFinder: NSViewRepresentable {
     @Binding var scrollView: NSScrollView?
+    var onScroll: ((Double) -> Void)?
 
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
         DispatchQueue.main.async {
-            self.scrollView = findScrollView(in: view)
+            if let sv = findScrollView(in: view) {
+                self.scrollView = sv
+                context.coordinator.observe(scrollView: sv)
+            }
         }
         return view
     }
 
     func updateNSView(_ nsView: NSView, context: Context) {
         DispatchQueue.main.async {
-            if self.scrollView == nil {
-                self.scrollView = findScrollView(in: nsView)
+            if self.scrollView == nil, let sv = findScrollView(in: nsView) {
+                self.scrollView = sv
+                context.coordinator.observe(scrollView: sv)
             }
         }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onScroll: onScroll)
     }
 
     private func findScrollView(in view: NSView) -> NSScrollView? {
@@ -367,14 +418,47 @@ struct NSScrollViewFinder: NSViewRepresentable {
         }
         return nil
     }
-}
 
-struct ScrollOffsetPreferenceKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
+    class Coordinator: NSObject {
+        var onScroll: ((Double) -> Void)?
+        private var observation: NSObjectProtocol?
+
+        init(onScroll: ((Double) -> Void)?) {
+            self.onScroll = onScroll
+        }
+
+        func observe(scrollView: NSScrollView) {
+            scrollView.contentView.postsBoundsChangedNotifications = true
+            observation = NotificationCenter.default.addObserver(
+                forName: NSView.boundsDidChangeNotification,
+                object: scrollView.contentView,
+                queue: .main
+            ) { [weak self, weak scrollView] _ in
+                guard let scrollView = scrollView,
+                      let documentView = scrollView.documentView else { return }
+
+                let contentHeight = documentView.bounds.height
+                let viewportHeight = scrollView.contentView.bounds.height
+                let currentY = scrollView.contentView.bounds.origin.y
+                let maxScrollY = max(0, contentHeight - viewportHeight)
+
+                var percentage: Double = 0
+                if maxScrollY > 0 {
+                    percentage = min(100.0, max(0.0, Double(currentY / maxScrollY) * 100.0))
+                }
+
+                self?.onScroll?(percentage)
+            }
+        }
+
+        deinit {
+            if let observation = observation {
+                NotificationCenter.default.removeObserver(observation)
+            }
+        }
     }
 }
+
 
 // MARK: - Markdown Content View
 

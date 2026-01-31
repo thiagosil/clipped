@@ -33,6 +33,22 @@ struct LibraryView: View {
 
                 Spacer()
 
+                // Pick for Me button
+                Button(action: {
+                    if let article = appState.pickRandomArticle() {
+                        withAnimation(.easeOut(duration: 0.15)) {
+                            appState.selectedArticle = article
+                        }
+                    }
+                }) {
+                    Image(systemName: "shuffle")
+                        .font(.system(size: 12, weight: .medium))
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(Theme.sidebarIcon)
+                .help("Pick a random article")
+                .disabled(appState.filteredArticles.isEmpty)
+
                 // Sort picker
                 sortMenu
 
@@ -216,26 +232,74 @@ struct LibraryView: View {
                 )
             } else {
                 ScrollView {
-                    LazyVStack(spacing: 1) {
-                        ForEach(appState.filteredArticles) { article in
-                            ArticleRow(
-                                article: article,
-                                isSelected: appState.selectedArticle?.id == article.id,
-                                isHovered: hoveredArticle?.id == article.id
+                    LazyVStack(spacing: 0) {
+                        // Continue section
+                        if !appState.continueReadingArticles.isEmpty {
+                            SectionHeader(
+                                title: "Continue",
+                                icon: "book.fill",
+                                count: appState.continueReadingArticles.count,
+                                isCollapsed: appState.collapsedSections.contains(.continueReading),
+                                onToggle: { appState.toggleSection(.continueReading) }
                             )
-                            .onTapGesture {
-                                withAnimation(.easeOut(duration: 0.1)) {
-                                    appState.selectedArticle = article
+                            if !appState.collapsedSections.contains(.continueReading) {
+                                ForEach(appState.continueReadingArticles) { article in
+                                    articleRow(for: article)
                                 }
                             }
-                            .onHover { hovering in
-                                hoveredArticle = hovering ? article : nil
+                        }
+
+                        // Quick Wins section
+                        if !appState.quickWinsArticles.isEmpty {
+                            SectionHeader(
+                                title: "Quick Wins",
+                                icon: "bolt.fill",
+                                count: appState.quickWinsArticles.count,
+                                isCollapsed: appState.collapsedSections.contains(.quickWins),
+                                onToggle: { appState.toggleSection(.quickWins) }
+                            )
+                            if !appState.collapsedSections.contains(.quickWins) {
+                                ForEach(appState.quickWinsArticles) { article in
+                                    articleRow(for: article)
+                                }
+                            }
+                        }
+
+                        // The Stack section
+                        if !appState.theStackArticles.isEmpty {
+                            SectionHeader(
+                                title: "The Stack",
+                                icon: "books.vertical.fill",
+                                count: appState.theStackArticles.count,
+                                isCollapsed: appState.collapsedSections.contains(.theStack),
+                                onToggle: { appState.toggleSection(.theStack) }
+                            )
+                            if !appState.collapsedSections.contains(.theStack) {
+                                ForEach(appState.theStackArticles) { article in
+                                    articleRow(for: article)
+                                }
                             }
                         }
                     }
                     .padding(.vertical, 2)
                 }
             }
+        }
+    }
+
+    private func articleRow(for article: Article) -> some View {
+        ArticleRow(
+            article: article,
+            isSelected: appState.selectedArticle?.id == article.id,
+            isHovered: hoveredArticle?.id == article.id
+        )
+        .onTapGesture {
+            withAnimation(.easeOut(duration: 0.1)) {
+                appState.selectedArticle = article
+            }
+        }
+        .onHover { hovering in
+            hoveredArticle = hovering ? article : nil
         }
     }
 
@@ -329,7 +393,7 @@ struct ArticleRow: View {
                 .frame(width: 3)
 
             VStack(alignment: .leading, spacing: 3) {
-                // Top line: Title + Date
+                // Top line: Title + Checkmark + Date
                 HStack(spacing: 8) {
                     Text(article.title)
                         .font(.system(size: 13, weight: isSelected ? .medium : .regular))
@@ -337,6 +401,12 @@ struct ArticleRow: View {
                         .lineLimit(1)
 
                     Spacer(minLength: 4)
+
+                    if (article.readingProgress ?? 0) >= 100 {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 12))
+                            .foregroundColor(Theme.progressComplete)
+                    }
 
                     Text(compactDate(article.dateAdded))
                         .font(.system(size: 11))
@@ -402,5 +472,44 @@ struct ArticleRow: View {
             formatter.dateFormat = "d/M"
             return formatter.string(from: date)
         }
+    }
+}
+
+// MARK: - Section Header
+
+struct SectionHeader: View {
+    let title: String
+    let icon: String
+    let count: Int
+    let isCollapsed: Bool
+    let onToggle: () -> Void
+
+    var body: some View {
+        Button(action: onToggle) {
+            HStack(spacing: 6) {
+                Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundColor(Theme.listTertiaryText)
+                    .frame(width: 10)
+
+                Image(systemName: icon)
+                    .font(.system(size: 10))
+                    .foregroundColor(Theme.listSecondaryText)
+
+                Text(title)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(Theme.listSecondaryText)
+
+                Text("\(count)")
+                    .font(.system(size: 10))
+                    .foregroundColor(Theme.listTertiaryText)
+
+                Spacer()
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(Theme.listBackground.opacity(0.5))
+        }
+        .buttonStyle(.plain)
     }
 }
