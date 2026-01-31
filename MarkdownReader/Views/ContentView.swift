@@ -10,7 +10,7 @@ struct ContentView: View {
             VStack(spacing: 0) {
                 // Window drag area (for traffic lights)
                 WindowDragArea()
-                    .frame(height: 52)
+                    .frame(height: 28)
                     .background(Theme.listBackground)
 
                 LibraryView()

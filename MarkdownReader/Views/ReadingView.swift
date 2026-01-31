@@ -604,6 +604,7 @@ struct MarkdownContentView: View {
                         VStack(spacing: 8) {
                             image
                                 .resizable()
+                                .interpolation(.high)
                                 .aspectRatio(contentMode: .fit)
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                             if !alt.isEmpty {
