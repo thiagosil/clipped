@@ -203,7 +203,7 @@ class AppState: ObservableObject {
         panel.prompt = "Choose"
 
         if let currentPath = folderSettings.folderPath {
-            panel.directoryURL = URL(fileURLWithPath: currentPath).deletingLastPathComponent()
+            panel.directoryURL = URL(fileURLWithPath: currentPath)
         }
 
         if panel.runModal() == .OK, let url = panel.url {

@@ -63,6 +63,17 @@ struct LibraryView: View {
                 .tint(Theme.sidebarIcon)
                 .foregroundColor(Theme.sidebarIcon)
                 .help("Refresh articles")
+
+                // Change folder button
+                Button(action: {
+                    appState.selectFolder()
+                }) {
+                    Image(systemName: "folder")
+                        .font(.system(size: 12, weight: .medium))
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(Theme.sidebarIcon)
+                .help("Change folder (⌘O)")
             }
 
             // Search field
