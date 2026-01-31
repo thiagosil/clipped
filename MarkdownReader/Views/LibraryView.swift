@@ -314,7 +314,7 @@ struct LibraryView: View {
     }
 }
 
-// MARK: - Article Row (Compact)
+// MARK: - Article Row (Compact Two-Line)
 
 struct ArticleRow: View {
     let article: Article
@@ -328,31 +328,51 @@ struct ArticleRow: View {
                 .fill(isSelected ? Theme.accent : Color.clear)
                 .frame(width: 3)
 
-            HStack(spacing: 10) {
-                // Document icon
-                Image(systemName: "doc.text")
-                    .font(.system(size: 13))
-                    .foregroundColor(isSelected ? Theme.accent : Theme.sidebarIcon)
+            VStack(alignment: .leading, spacing: 3) {
+                // Top line: Title + Date
+                HStack(spacing: 8) {
+                    Text(article.title)
+                        .font(.system(size: 13, weight: isSelected ? .medium : .regular))
+                        .foregroundColor(Theme.listText)
+                        .lineLimit(1)
 
-                // Title only - single line
-                Text(article.title)
-                    .font(.system(size: 13, weight: isSelected ? .medium : .regular))
-                    .foregroundColor(Theme.listText)
-                    .lineLimit(1)
+                    Spacer(minLength: 4)
 
-                Spacer(minLength: 4)
+                    Text(compactDate(article.dateAdded))
+                        .font(.system(size: 11))
+                        .foregroundColor(Theme.listTertiaryText)
+                }
 
-                // Compact date
-                Text(compactDate(article.dateAdded))
-                    .font(.system(size: 11))
-                    .foregroundColor(Theme.listTertiaryText)
+                // Bottom line: Author · Source
+                if let subtitle = sourceSubtitle {
+                    Text(subtitle)
+                        .font(.system(size: 11))
+                        .foregroundColor(Theme.listSecondaryText)
+                        .lineLimit(1)
+                }
             }
-            .padding(.leading, 10)
+            .padding(.leading, 12)
             .padding(.trailing, 12)
             .padding(.vertical, 8)
         }
         .background(backgroundColor)
         .contentShape(Rectangle())
+    }
+
+    private var sourceSubtitle: String? {
+        let author = article.author
+        let domain = article.sourceDomain?.replacingOccurrences(of: "www.", with: "")
+
+        switch (author, domain) {
+        case let (a?, d?):
+            return "\(a) · \(d)"
+        case let (a?, nil):
+            return a
+        case let (nil, d?):
+            return d
+        case (nil, nil):
+            return nil
+        }
     }
 
     private var backgroundColor: Color {
@@ -375,7 +395,7 @@ struct ArticleRow: View {
             return "Yest"
         } else if let daysAgo = calendar.dateComponents([.day], from: date, to: now).day, daysAgo < 7 {
             let formatter = DateFormatter()
-            formatter.dateFormat = "EEE" // Short day name
+            formatter.dateFormat = "EEE"
             return formatter.string(from: date)
         } else {
             let formatter = DateFormatter()
