@@ -11,6 +11,7 @@ class AppState: ObservableObject {
     @Published var loadError: ArticleServiceError?
     @Published var collapsedSections: Set<SmartSurface> = [.theStack]
     @Published var showKeyboardShortcuts = false
+    @Published var sidebarVisible = true
 
     private let articleService = ArticleService()
     private let progressStore = ReadingProgressStore()

@@ -49,6 +49,8 @@ struct ReadingView: View {
                 .onAppear {
                     restoreScrollPosition(scrollProxy: scrollProxy, viewHeight: geometry.size.height)
                 }
+                .focusable()
+                .focusEffectDisabled()
                 .onKeyPress { keyPress in
                     handleKeyPress(keyPress, scrollProxy: scrollProxy, viewHeight: geometry.size.height)
                 }

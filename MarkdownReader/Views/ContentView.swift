@@ -7,18 +7,21 @@ struct ContentView: View {
     var body: some View {
         HStack(spacing: 0) {
             // Sidebar with article list
-            VStack(spacing: 0) {
-                // Window drag area (for traffic lights)
-                WindowDragArea()
-                    .frame(height: 28)
-                    .background(Theme.listBackground)
+            if appState.sidebarVisible {
+                VStack(spacing: 0) {
+                    // Window drag area (for traffic lights)
+                    WindowDragArea()
+                        .frame(height: 28)
+                        .background(Theme.listBackground)
 
-                LibraryView()
+                    LibraryView()
+                }
+                .frame(width: sidebarWidth)
+                .transition(.move(edge: .leading))
+
+                // Resize handle
+                resizeHandle
             }
-            .frame(width: sidebarWidth)
-
-            // Resize handle
-            resizeHandle
 
             // Content area
             ZStack {
@@ -32,6 +35,7 @@ struct ContentView: View {
                 }
             }
         }
+        .animation(.easeInOut(duration: 0.2), value: appState.sidebarVisible)
         .task {
             await appState.loadArticles()
         }
@@ -91,7 +95,7 @@ struct EmptyContentView: View {
                 HStack(spacing: 24) {
                     shortcutHint(keys: ["↑", "↓"], description: "Navigate")
                     shortcutHint(keys: ["Space"], description: "Page down")
-                    shortcutHint(keys: ["gg"], description: "Go to top")
+                    shortcutHint(keys: ["?"], description: "All shortcuts")
                 }
             }
             .padding(.top, 16)
