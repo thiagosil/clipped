@@ -148,6 +148,7 @@ struct ReadingView: View {
                     )
             }
             .buttonStyle(.plain)
+            .help("Reading settings")
             .popover(isPresented: $showSettings) {
                 ReadingSettingsView(settings: settings)
                     .padding()
