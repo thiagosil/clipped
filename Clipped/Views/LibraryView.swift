@@ -3,10 +3,11 @@ import SwiftUI
 struct LibraryView: View {
     @EnvironmentObject var appState: AppState
     @State private var hoveredArticle: Article?
+    @FocusState private var isSearchFocused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header with search
+            // Header controls
             header
 
             // Tag filters (if any active)
@@ -16,6 +17,11 @@ struct LibraryView: View {
 
             // Article list
             articleList
+
+            // Search at bottom - only focused when clicked
+            searchField
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
         }
         .background(Theme.listBackground)
     }
@@ -23,61 +29,55 @@ struct LibraryView: View {
     // MARK: - Header
 
     private var header: some View {
-        VStack(spacing: 8) {
-            // Top row with controls
-            HStack(spacing: 10) {
-                // Tag filter dropdown
-                if !appState.allTags.isEmpty {
-                    tagFilterMenu
-                }
-
-                Spacer()
-
-                // Pick for Me button
-                Button(action: {
-                    if let article = appState.pickRandomArticle() {
-                        withAnimation(.easeOut(duration: 0.15)) {
-                            appState.selectedArticle = article
-                        }
-                    }
-                }) {
-                    Image(systemName: "shuffle")
-                        .font(.system(size: 12, weight: .medium))
-                }
-                .buttonStyle(.plain)
-                .foregroundColor(Theme.sidebarIcon)
-                .help("Pick a random article")
-                .disabled(appState.filteredArticles.isEmpty)
-
-                // Sort picker
-                sortMenu
-
-                // Refresh button
-                Button(action: {
-                    Task { await appState.loadArticles() }
-                }) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 12, weight: .medium))
-                }
-                .buttonStyle(.plain)
-                .tint(Theme.sidebarIcon)
-                .foregroundColor(Theme.sidebarIcon)
-                .help("Refresh articles")
-
-                // Change folder button
-                Button(action: {
-                    appState.selectFolder()
-                }) {
-                    Image(systemName: "folder")
-                        .font(.system(size: 12, weight: .medium))
-                }
-                .buttonStyle(.plain)
-                .foregroundColor(Theme.sidebarIcon)
-                .help("Change folder (⌘O)")
+        HStack(spacing: 10) {
+            // Tag filter dropdown
+            if !appState.allTags.isEmpty {
+                tagFilterMenu
             }
 
-            // Search field
-            searchField
+            Spacer()
+
+            // Pick for Me button
+            Button(action: {
+                if let article = appState.pickRandomArticle() {
+                    withAnimation(.easeOut(duration: 0.15)) {
+                        appState.selectedArticle = article
+                    }
+                }
+            }) {
+                Image(systemName: "shuffle")
+                    .font(.system(size: 12, weight: .medium))
+            }
+            .buttonStyle(.plain)
+            .foregroundColor(Theme.sidebarIcon)
+            .help("Pick a random article")
+            .disabled(appState.filteredArticles.isEmpty)
+
+            // Sort picker
+            sortMenu
+
+            // Refresh button
+            Button(action: {
+                Task { await appState.loadArticles() }
+            }) {
+                Image(systemName: "arrow.clockwise")
+                    .font(.system(size: 12, weight: .medium))
+            }
+            .buttonStyle(.plain)
+            .tint(Theme.sidebarIcon)
+            .foregroundColor(Theme.sidebarIcon)
+            .help("Refresh articles")
+
+            // Change folder button
+            Button(action: {
+                appState.selectFolder()
+            }) {
+                Image(systemName: "folder")
+                    .font(.system(size: 12, weight: .medium))
+            }
+            .buttonStyle(.plain)
+            .foregroundColor(Theme.sidebarIcon)
+            .help("Change folder (⌘O)")
         }
         .padding(.horizontal, 12)
         .padding(.top, 6)
@@ -157,7 +157,7 @@ struct LibraryView: View {
                 .foregroundColor(Theme.searchPlaceholder)
 
             ZStack(alignment: .leading) {
-                if appState.searchText.isEmpty {
+                if appState.searchText.isEmpty && !isSearchFocused {
                     Text("Search...")
                         .font(.system(size: 12))
                         .foregroundColor(Theme.searchPlaceholder)
@@ -166,10 +166,14 @@ struct LibraryView: View {
                     .textFieldStyle(.plain)
                     .font(.system(size: 12))
                     .foregroundColor(Theme.listText)
+                    .focused($isSearchFocused)
             }
 
             if !appState.searchText.isEmpty {
-                Button(action: { appState.searchText = "" }) {
+                Button(action: {
+                    appState.searchText = ""
+                    isSearchFocused = false
+                }) {
                     Image(systemName: "xmark.circle.fill")
                         .font(.system(size: 11))
                         .foregroundColor(Theme.searchPlaceholder)
@@ -183,8 +187,11 @@ struct LibraryView: View {
         .clipShape(RoundedRectangle(cornerRadius: 6))
         .overlay(
             RoundedRectangle(cornerRadius: 6)
-                .stroke(Theme.searchBorder, lineWidth: 1)
+                .stroke(isSearchFocused ? Theme.accent : Theme.searchBorder, lineWidth: 1)
         )
+        .onTapGesture {
+            isSearchFocused = true
+        }
     }
 
     // MARK: - Active Filters
