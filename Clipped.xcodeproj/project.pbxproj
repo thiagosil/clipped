@@ -22,6 +22,12 @@
 		1A000000000000000000000D /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000001E /* Theme.swift */; };
 		1A000000000000000000000E /* KeyboardShortcutsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000001F /* KeyboardShortcutsView.swift */; };
 		1A000000000000000000000F /* FolderSettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000021 /* FolderSettingsStore.swift */; };
+		1A0000000000000000000100 /* ReadwiseSettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000022 /* ReadwiseSettingsStore.swift */; };
+		1A0000000000000000000101 /* ReadwiseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000023 /* ReadwiseService.swift */; };
+		1A0000000000000000000102 /* ReadwiseImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000024 /* ReadwiseImportView.swift */; };
+		1A0000000000000000000103 /* ReadwiseDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000025 /* ReadwiseDocument.swift */; };
+		1A0000000000000000000104 /* Demark in Frameworks */ = {isa = PBXBuildFile; productRef = 1A0000000000000000000200 /* Demark */; };
+		1A0000000000000000000105 /* ReadwiseImportProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000026 /* ReadwiseImportProgress.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -42,6 +48,11 @@
 		1A000000000000000000001E /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		1A000000000000000000001F /* KeyboardShortcutsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutsView.swift; sourceTree = "<group>"; };
 		1A0000000000000000000021 /* FolderSettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderSettingsStore.swift; sourceTree = "<group>"; };
+		1A0000000000000000000022 /* ReadwiseSettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadwiseSettingsStore.swift; sourceTree = "<group>"; };
+		1A0000000000000000000023 /* ReadwiseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadwiseService.swift; sourceTree = "<group>"; };
+		1A0000000000000000000024 /* ReadwiseImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadwiseImportView.swift; sourceTree = "<group>"; };
+		1A0000000000000000000025 /* ReadwiseDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadwiseDocument.swift; sourceTree = "<group>"; };
+		1A0000000000000000000026 /* ReadwiseImportProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadwiseImportProgress.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -49,6 +60,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1A0000000000000000000104 /* Demark in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -84,6 +96,8 @@
 				1A0000000000000000000013 /* Article.swift */,
 				1A0000000000000000000014 /* ReadingProgress.swift */,
 				1A0000000000000000000015 /* ReadingSettings.swift */,
+				1A0000000000000000000025 /* ReadwiseDocument.swift */,
+				1A0000000000000000000026 /* ReadwiseImportProgress.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -94,6 +108,8 @@
 				1A0000000000000000000016 /* ArticleService.swift */,
 				1A0000000000000000000021 /* FolderSettingsStore.swift */,
 				1A0000000000000000000017 /* ReadingProgressStore.swift */,
+				1A0000000000000000000022 /* ReadwiseSettingsStore.swift */,
+				1A0000000000000000000023 /* ReadwiseService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -106,6 +122,7 @@
 				1A0000000000000000000019 /* LibraryView.swift */,
 				1A000000000000000000001A /* ReadingView.swift */,
 				1A000000000000000000001B /* ReadingSettingsView.swift */,
+				1A0000000000000000000024 /* ReadwiseImportView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -134,6 +151,9 @@
 			dependencies = (
 			);
 			name = Clipped;
+			packageProductDependencies = (
+				1A0000000000000000000200 /* Demark */,
+			);
 			productName = Clipped;
 			productReference = 1A0000000000000000000010 /* Clipped.app */;
 			productType = "com.apple.product-type.application";
@@ -162,6 +182,9 @@
 				Base,
 			);
 			mainGroup = 1A0000000000000000000030;
+			packageReferences = (
+				1A0000000000000000000201 /* XCRemoteSwiftPackageReference "Demark" */,
+			);
 			productRefGroup = 1A0000000000000000000040 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -196,11 +219,16 @@
 				1A0000000000000000000006 /* ArticleService.swift in Sources */,
 				1A000000000000000000000F /* FolderSettingsStore.swift in Sources */,
 				1A0000000000000000000007 /* ReadingProgressStore.swift in Sources */,
+				1A0000000000000000000100 /* ReadwiseSettingsStore.swift in Sources */,
+				1A0000000000000000000101 /* ReadwiseService.swift in Sources */,
 				1A0000000000000000000008 /* ContentView.swift in Sources */,
 				1A000000000000000000000E /* KeyboardShortcutsView.swift in Sources */,
 				1A0000000000000000000009 /* LibraryView.swift in Sources */,
 				1A000000000000000000000A /* ReadingView.swift in Sources */,
 				1A000000000000000000000B /* ReadingSettingsView.swift in Sources */,
+				1A0000000000000000000102 /* ReadwiseImportView.swift in Sources */,
+				1A0000000000000000000103 /* ReadwiseDocument.swift in Sources */,
+				1A0000000000000000000105 /* ReadwiseImportProgress.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -399,6 +427,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		1A0000000000000000000201 /* XCRemoteSwiftPackageReference "Demark" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/steipete/Demark.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		1A0000000000000000000200 /* Demark */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1A0000000000000000000201 /* XCRemoteSwiftPackageReference "Demark" */;
+			productName = Demark;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 1A0000000000000000000070 /* Project object */;
 }

@@ -68,6 +68,17 @@ struct LibraryView: View {
             .foregroundColor(Theme.sidebarIcon)
             .help("Refresh articles")
 
+            // Import from Readwise button
+            Button(action: {
+                appState.showReadwiseImport = true
+            }) {
+                Image(systemName: "square.and.arrow.down")
+                    .font(.system(size: 12, weight: .medium))
+            }
+            .buttonStyle(.plain)
+            .foregroundColor(Theme.sidebarIcon)
+            .help("Import from Readwise")
+
             // Change folder button
             Button(action: {
                 appState.selectFolder()

@@ -40,6 +40,19 @@ struct ContentView: View {
             await appState.loadArticles()
         }
         .ignoresSafeArea()
+        .frame(minWidth: 800, minHeight: 500)
+        .navigationTitle(windowTitle)
+        .sheet(isPresented: $appState.showReadwiseImport) {
+            ReadwiseImportView()
+                .environmentObject(appState)
+        }
+    }
+
+    private var windowTitle: String {
+        if let article = appState.selectedArticle {
+            return article.title
+        }
+        return "Clipped"
     }
 
     private var resizeHandle: some View {

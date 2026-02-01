@@ -13,10 +13,12 @@ class AppState: ObservableObject {
     @Published var collapsedSections: Set<SmartSurface> = [.theStack]
     @Published var showKeyboardShortcuts = false
     @Published var sidebarVisible = true
+    @Published var showReadwiseImport = false
 
     private let articleService = ArticleService()
     private let progressStore = ReadingProgressStore()
     let folderSettings = FolderSettingsStore()
+    let readwiseSettings = ReadwiseSettingsStore()
 
     enum SortOrder: String, CaseIterable {
         case dateAdded = "Date Added"
