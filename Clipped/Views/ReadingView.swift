@@ -59,6 +59,8 @@ struct ReadingView: View {
         .background(Theme.contentBackground)
         .overlay(alignment: .topTrailing) {
             toolbarButtons
+                .opacity(scrollPosition < 0.05 ? 1 : 0)
+                .animation(.easeInOut(duration: 0.2), value: scrollPosition < 0.05)
         }
         .overlay(alignment: .bottom) {
             progressBar
@@ -303,6 +305,10 @@ struct ReadingView: View {
                 if let next = appState.nextUnreadArticle(after: article) {
                     appState.selectedArticle = next
                 }
+                return .handled
+
+            case "a":
+                appState.archiveArticle(article)
                 return .handled
 
             case "?":
