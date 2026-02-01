@@ -37,62 +37,60 @@ struct LibraryView: View {
 
             Spacer()
 
-            // Pick for Me button
-            Button(action: {
+            // Sort picker
+            sortMenu
+
+            // More actions menu
+            moreActionsMenu
+        }
+        .padding(.horizontal, 12)
+        .padding(.top, 6)
+        .padding(.bottom, 8)
+    }
+
+    private var moreActionsMenu: some View {
+        Menu {
+            Button {
                 if let article = appState.pickRandomArticle() {
                     withAnimation(.easeOut(duration: 0.15)) {
                         appState.selectedArticle = article
                     }
                 }
-            }) {
-                Image(systemName: "shuffle")
-                    .font(.system(size: 12, weight: .medium))
+            } label: {
+                Label("Pick Random", systemImage: "shuffle")
             }
-            .buttonStyle(.plain)
-            .foregroundColor(Theme.sidebarIcon)
-            .help("Pick a random article")
             .disabled(appState.filteredArticles.isEmpty)
 
-            // Sort picker
-            sortMenu
+            Divider()
 
-            // Refresh button
-            Button(action: {
+            Button {
                 Task { await appState.loadArticles() }
-            }) {
-                Image(systemName: "arrow.clockwise")
-                    .font(.system(size: 12, weight: .medium))
+            } label: {
+                Label("Refresh", systemImage: "arrow.clockwise")
             }
-            .buttonStyle(.plain)
-            .tint(Theme.sidebarIcon)
-            .foregroundColor(Theme.sidebarIcon)
-            .help("Refresh articles")
+            .keyboardShortcut("r", modifiers: .command)
 
-            // Import from Readwise button
-            Button(action: {
+            Button {
                 appState.showReadwiseImport = true
-            }) {
-                Image(systemName: "square.and.arrow.down")
-                    .font(.system(size: 12, weight: .medium))
+            } label: {
+                Label("Import from Readwise", systemImage: "square.and.arrow.down")
             }
-            .buttonStyle(.plain)
-            .foregroundColor(Theme.sidebarIcon)
-            .help("Import from Readwise")
 
-            // Change folder button
-            Button(action: {
+            Divider()
+
+            Button {
                 appState.selectFolder()
-            }) {
-                Image(systemName: "folder")
-                    .font(.system(size: 12, weight: .medium))
+            } label: {
+                Label("Change Folder...", systemImage: "folder")
             }
-            .buttonStyle(.plain)
-            .foregroundColor(Theme.sidebarIcon)
-            .help("Change folder (⌘O)")
+            .keyboardShortcut("o", modifiers: .command)
+        } label: {
+            Image(systemName: "ellipsis.circle")
+                .font(.system(size: 12, weight: .medium))
         }
-        .padding(.horizontal, 12)
-        .padding(.top, 6)
-        .padding(.bottom, 8)
+        .menuStyle(.borderlessButton)
+        .tint(Theme.sidebarIcon)
+        .fixedSize()
     }
 
     private var tagFilterMenu: some View {
