@@ -5,6 +5,24 @@ struct ReadwiseImportProgress: Sendable {
     let fetchedCount: Int
     let currentPage: Int
     let status: Status
+    let newCount: Int
+    let skippedCount: Int
+
+    init(
+        totalCount: Int?,
+        fetchedCount: Int,
+        currentPage: Int,
+        status: Status,
+        newCount: Int = 0,
+        skippedCount: Int = 0
+    ) {
+        self.totalCount = totalCount
+        self.fetchedCount = fetchedCount
+        self.currentPage = currentPage
+        self.status = status
+        self.newCount = newCount
+        self.skippedCount = skippedCount
+    }
 
     enum Status: Sendable {
         case fetching
@@ -32,7 +50,13 @@ struct ReadwiseImportProgress: Sendable {
         case .rateLimited(let seconds):
             return "Rate limited. Waiting \(seconds) seconds..."
         case .completed:
-            return "Import completed! \(fetchedCount) articles imported."
+            if skippedCount > 0 {
+                return "\(newCount) new articles imported, \(skippedCount) already existed."
+            } else if newCount > 0 {
+                return "\(newCount) new articles imported."
+            } else {
+                return "No new articles to import."
+            }
         case .failed(let message):
             return "Import failed: \(message)"
         }

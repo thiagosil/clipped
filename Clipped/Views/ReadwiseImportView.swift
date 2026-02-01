@@ -159,6 +159,19 @@ struct ReadwiseImportView: View {
                             .buttonStyle(.plain)
                         }
                     }
+
+                    if let lastImport = appState.readwiseSettings.lastImportDate(for: selectedLocation.rawValue) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "clock.arrow.circlepath")
+                                .font(.system(size: 10))
+                            Text("Last import: \(lastImport, style: .relative) ago")
+                                .font(.system(size: 10))
+                            Text("• Only new articles will be fetched")
+                                .font(.system(size: 10))
+                                .foregroundColor(Theme.listTertiaryText)
+                        }
+                        .foregroundColor(Theme.listSecondaryText)
+                    }
                 }
             }
 
@@ -263,13 +276,34 @@ struct ReadwiseImportView: View {
                     }
 
                     if case .completed = progress.status {
-                        HStack(spacing: 6) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 14))
-                            Text("Import completed!")
-                                .font(.system(size: 13, weight: .medium))
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 14))
+                                Text("Import completed!")
+                                    .font(.system(size: 13, weight: .medium))
+                            }
+                            .foregroundColor(Theme.progressComplete)
+
+                            if progress.newCount > 0 || progress.skippedCount > 0 {
+                                HStack(spacing: 12) {
+                                    if progress.newCount > 0 {
+                                        Label("\(progress.newCount) new", systemImage: "plus.circle.fill")
+                                            .font(.system(size: 11))
+                                            .foregroundColor(Theme.progressComplete)
+                                    }
+                                    if progress.skippedCount > 0 {
+                                        Label("\(progress.skippedCount) existed", systemImage: "arrow.right.circle.fill")
+                                            .font(.system(size: 11))
+                                            .foregroundColor(Theme.listSecondaryText)
+                                    }
+                                }
+                            } else if progress.fetchedCount == 0 {
+                                Text("No new articles since last import")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(Theme.listSecondaryText)
+                            }
                         }
-                        .foregroundColor(Theme.progressComplete)
                         .padding(.top, 8)
                     }
 
@@ -393,13 +427,18 @@ struct ReadwiseImportView: View {
         isImporting = true
         importProgress = nil
 
+        // Record the start time before fetching
+        let importStartTime = Date()
+        let lastImportDate = appState.readwiseSettings.lastImportDate(for: selectedLocation.rawValue)
+
         importTask = Task {
             do {
                 let service = ReadwiseService()
                 let documents = try await service.fetchAllDocuments(
                     apiKey: apiKeyInput,
                     category: "article",
-                    location: selectedLocation.rawValue
+                    location: selectedLocation.rawValue,
+                    updatedAfter: lastImportDate
                 ) { progress in
                     Task { @MainActor in
                         self.importProgress = progress
@@ -407,16 +446,21 @@ struct ReadwiseImportView: View {
                 }
 
                 // Convert and save documents
-                var savedCount = 0
+                var newCount = 0
+                var skippedCount = 0
+                var processedCount = 0
+
                 for document in documents {
                     if Task.isCancelled { break }
 
                     await MainActor.run {
                         self.importProgress = ReadwiseImportProgress(
                             totalCount: documents.count,
-                            fetchedCount: savedCount,
+                            fetchedCount: processedCount,
                             currentPage: 0,
-                            status: .converting(articleTitle: document.title ?? "Untitled")
+                            status: .converting(articleTitle: document.title ?? "Untitled"),
+                            newCount: newCount,
+                            skippedCount: skippedCount
                         )
                     }
 
@@ -429,23 +473,29 @@ struct ReadwiseImportView: View {
                         if !FileManager.default.fileExists(atPath: fileURL.path) {
                             do {
                                 try markdown.write(to: fileURL, atomically: true, encoding: .utf8)
-                                savedCount += 1
+                                newCount += 1
                             } catch {
                                 print("Failed to write file: \(error)")
                             }
                         } else {
-                            savedCount += 1 // Count as "processed" even if skipped
+                            skippedCount += 1
                         }
                     }
+                    processedCount += 1
                 }
 
                 await MainActor.run {
                     self.importProgress = ReadwiseImportProgress(
                         totalCount: documents.count,
-                        fetchedCount: savedCount,
+                        fetchedCount: processedCount,
                         currentPage: 0,
-                        status: .completed
+                        status: .completed,
+                        newCount: newCount,
+                        skippedCount: skippedCount
                     )
+
+                    // Save the import timestamp for incremental imports
+                    appState.readwiseSettings.setLastImportDate(importStartTime, for: selectedLocation.rawValue)
 
                     // Refresh the article list
                     Task {

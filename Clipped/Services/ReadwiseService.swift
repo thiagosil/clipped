@@ -71,6 +71,7 @@ actor ReadwiseService {
         pageCursor: String? = nil,
         category: String = "article",
         location: String? = nil,
+        updatedAfter: Date? = nil,
         withHtmlContent: Bool = true
     ) async throws -> ReadwiseListResponse {
         var urlComponents = URLComponents(string: "\(baseURL)/api/v3/list/")!
@@ -82,6 +83,12 @@ actor ReadwiseService {
 
         if let location = location {
             queryItems.append(URLQueryItem(name: "location", value: location))
+        }
+
+        if let updatedAfter = updatedAfter {
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime]
+            queryItems.append(URLQueryItem(name: "updatedAfter", value: formatter.string(from: updatedAfter)))
         }
 
         if withHtmlContent {
@@ -136,6 +143,7 @@ actor ReadwiseService {
         apiKey: String,
         category: String = "article",
         location: String? = nil,
+        updatedAfter: Date? = nil,
         onProgress: @escaping @Sendable (ReadwiseImportProgress) -> Void
     ) async throws -> [ReadwiseDocument] {
         var allDocuments: [ReadwiseDocument] = []
@@ -149,7 +157,8 @@ actor ReadwiseService {
                     apiKey: apiKey,
                     pageCursor: cursor,
                     category: category,
-                    location: location
+                    location: location,
+                    updatedAfter: updatedAfter
                 )
 
                 if totalCount == nil {
