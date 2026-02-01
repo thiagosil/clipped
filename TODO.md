@@ -1,47 +1,37 @@
 # Markdown Reader - Remaining Tasks
 
-## Library View
+## Completed
 
-- [ ] Filter by tags (if present in frontmatter or content)
-- [ ] Visual progress bar indicator (currently just percentage text)
+- [x] Filter by tags (frontmatter and content hashtags)
+- [x] Visual progress bar indicator
+- [x] `Escape` or `Cmd+[` to return to library
+- [x] `Space` / `Shift+Space` to scroll page
+- [x] `j/k` or arrow keys to scroll
+- [x] `g g` to go to top, `G` to go to bottom
+- [x] Scroll position restoration on reopen
+- [x] Code blocks with language labels
+- [x] Images via AsyncImage
+- [x] Horizontal rules
+- [x] Inline formatting (bold, italic, inline code, links)
+- [x] Empty state when no articles found
+- [x] Error handling when folder doesn't exist
+- [x] User-selectable folder (Cmd+O)
+- [x] Smart sections (Continue Reading, Quick Wins, The Stack)
+- [x] Keyboard shortcuts help modal (?)
+- [x] Sidebar toggle (Cmd+B)
+- [x] Random article picker
+- [x] Completion animation at 100%
 
-## Reading View
+## Remaining
 
-### Keyboard Shortcuts
-- [ ] `Escape` or `Cmd+[` to return to library
-- [ ] `Space` / `Shift+Space` to scroll page
-- [ ] `j/k` or arrow keys to scroll
-- [ ] `g g` to go to top, `G` to go to bottom
-
-### Scroll & Progress
-- [ ] Scroll position restoration on reopen (partially implemented, needs testing)
-- [ ] Verify progress saves correctly when closing article
-
-### Markdown Rendering
-- [ ] Code blocks with syntax highlighting
-- [ ] Images
-- [ ] Horizontal rules
-- [ ] Better inline formatting (bold, italic, inline code)
-
-## Article Metadata Panel (Optional)
-
-- [ ] Collapsible sidebar showing:
-  - Title
-  - Author
-  - Source URL (clickable to open in browser)
-  - Published date
-  - Word count / reading time
-  - Reading progress
-
-## Data Persistence
-
-- [ ] Verify read/unread status tracking works correctly
-- [ ] Test progress persistence across app restarts
-
-## Polish
-
+### Polish
+- [ ] Code blocks with actual syntax highlighting colors
 - [ ] Window title and default sizing
-- [ ] Empty state when no articles found in folder
-- [ ] Error handling when Clippings folder doesn't exist
-- [ ] Refine typography defaults for distraction-free reading
 - [ ] Loading states during article refresh
+
+### Testing
+- [ ] Verify progress persistence across app restarts
+- [ ] Verify read/unread status tracking
+
+### Optional
+- [ ] Article metadata sidebar panel
