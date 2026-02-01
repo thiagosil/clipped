@@ -235,15 +235,7 @@ actor ReadwiseService {
 
         frontmatter += "---\n\n"
 
-        // Add title as H1 if present
-        var content = frontmatter
-        if let title = document.title {
-            content += "# \(title)\n\n"
-        }
-
-        content += markdown
-
-        return content
+        return frontmatter + markdown
     }
 
     nonisolated private func stripHTML(_ html: String) -> String {
