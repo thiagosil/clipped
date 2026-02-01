@@ -10,10 +10,36 @@ struct ReadwiseImportView: View {
     @State private var isImporting = false
     @State private var importProgress: ReadwiseImportProgress?
     @State private var importTask: Task<Void, Never>?
+    @State private var selectedLocation: ReadwiseLocation = .later
 
     enum ValidationResult {
         case success
         case failure(String)
+    }
+
+    enum ReadwiseLocation: String, CaseIterable {
+        case new = "new"
+        case later = "later"
+        case shortlist = "shortlist"
+        case archive = "archive"
+
+        var displayName: String {
+            switch self {
+            case .new: return "Inbox"
+            case .later: return "Later"
+            case .shortlist: return "Shortlist"
+            case .archive: return "Archive"
+            }
+        }
+
+        var description: String {
+            switch self {
+            case .new: return "Unseen articles"
+            case .later: return "Saved for later"
+            case .shortlist: return "Priority reading"
+            case .archive: return "Already read"
+            }
+        }
     }
 
     var body: some View {
@@ -58,6 +84,8 @@ struct ReadwiseImportView: View {
         .onAppear {
             if let savedKey = appState.readwiseSettings.apiKey {
                 apiKeyInput = savedKey
+                // Automatically validate saved key
+                testConnection()
             }
         }
         .onDisappear {
@@ -103,6 +131,37 @@ struct ReadwiseImportView: View {
                 .foregroundColor(Theme.accent)
             }
 
+            if validationResult?.isSuccess == true {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Import from")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(Theme.listSecondaryText)
+
+                    HStack(spacing: 8) {
+                        ForEach(ReadwiseLocation.allCases, id: \.self) { location in
+                            Button(action: {
+                                selectedLocation = location
+                            }) {
+                                VStack(spacing: 2) {
+                                    Text(location.displayName)
+                                        .font(.system(size: 11, weight: .medium))
+                                    Text(location.description)
+                                        .font(.system(size: 9))
+                                        .foregroundColor(selectedLocation == location ? .white.opacity(0.8) : Theme.listTertiaryText)
+                                }
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .frame(maxWidth: .infinity)
+                                .background(selectedLocation == location ? Theme.accent : Theme.searchBackground)
+                                .foregroundColor(selectedLocation == location ? .white : Theme.listText)
+                                .clipShape(RoundedRectangle(cornerRadius: 6))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
+
             if let result = validationResult {
                 statusView(for: result)
             }
@@ -125,7 +184,7 @@ struct ReadwiseImportView: View {
 
                 if validationResult?.isSuccess == true {
                     Button(action: startImport) {
-                        Text("Import All Articles")
+                        Text("Import from \(selectedLocation.displayName)")
                     }
                     .buttonStyle(.plain)
                     .font(.system(size: 12, weight: .medium))
@@ -339,7 +398,8 @@ struct ReadwiseImportView: View {
                 let service = ReadwiseService()
                 let documents = try await service.fetchAllDocuments(
                     apiKey: apiKeyInput,
-                    category: "article"
+                    category: "article",
+                    location: selectedLocation.rawValue
                 ) { progress in
                     Task { @MainActor in
                         self.importProgress = progress

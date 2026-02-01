@@ -32,40 +32,7 @@ enum ReadwiseError: Error, LocalizedError {
 
 actor ReadwiseService {
     private let baseURL = "https://readwise.io"
-
-    private lazy var decoder: JSONDecoder = {
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .custom { decoder in
-            let container = try decoder.singleValueContainer()
-            let dateString = try container.decode(String.self)
-
-            // Try ISO8601 with fractional seconds
-            let formatter = ISO8601DateFormatter()
-            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            if let date = formatter.date(from: dateString) {
-                return date
-            }
-
-            // Try ISO8601 without fractional seconds
-            formatter.formatOptions = [.withInternetDateTime]
-            if let date = formatter.date(from: dateString) {
-                return date
-            }
-
-            // Try simple date format
-            let dateFormatter = DateFormatter()
-            dateFormatter.dateFormat = "yyyy-MM-dd"
-            if let date = dateFormatter.date(from: dateString) {
-                return date
-            }
-
-            throw DecodingError.dataCorruptedError(
-                in: container,
-                debugDescription: "Cannot decode date: \(dateString)"
-            )
-        }
-        return decoder
-    }()
+    private let decoder = JSONDecoder()
 
     func validateAPIKey(_ apiKey: String) async throws -> Bool {
         let url = URL(string: "\(baseURL)/api/v2/auth/")!
@@ -102,7 +69,9 @@ actor ReadwiseService {
     func fetchDocuments(
         apiKey: String,
         pageCursor: String? = nil,
-        category: String = "article"
+        category: String = "article",
+        location: String? = nil,
+        withHtmlContent: Bool = true
     ) async throws -> ReadwiseListResponse {
         var urlComponents = URLComponents(string: "\(baseURL)/api/v3/list/")!
         var queryItems = [URLQueryItem(name: "category", value: category)]
@@ -111,43 +80,62 @@ actor ReadwiseService {
             queryItems.append(URLQueryItem(name: "pageCursor", value: cursor))
         }
 
+        if let location = location {
+            queryItems.append(URLQueryItem(name: "location", value: location))
+        }
+
+        if withHtmlContent {
+            queryItems.append(URLQueryItem(name: "withHtmlContent", value: "true"))
+        }
+
         urlComponents.queryItems = queryItems
 
         var request = URLRequest(url: urlComponents.url!)
         request.httpMethod = "GET"
         request.setValue("Token \(apiKey)", forHTTPHeaderField: "Authorization")
 
+        let data: Data
+        let response: URLResponse
+
         do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-
-            guard let httpResponse = response as? HTTPURLResponse else {
-                throw ReadwiseError.invalidResponse
-            }
-
-            switch httpResponse.statusCode {
-            case 200:
-                return try decoder.decode(ReadwiseListResponse.self, from: data)
-            case 401:
-                throw ReadwiseError.invalidAPIKey
-            case 429:
-                let retryAfter = Int(httpResponse.value(forHTTPHeaderField: "Retry-After") ?? "60") ?? 60
-                throw ReadwiseError.rateLimited(retryAfter: retryAfter)
-            default:
-                throw ReadwiseError.serverError(statusCode: httpResponse.statusCode)
-            }
-        } catch let error as ReadwiseError {
-            throw error
-        } catch let error as DecodingError {
-            print("Decoding error: \(error)")
-            throw ReadwiseError.invalidResponse
+            (data, response) = try await URLSession.shared.data(for: request)
         } catch {
             throw ReadwiseError.networkError(error)
+        }
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw ReadwiseError.invalidResponse
+        }
+
+        switch httpResponse.statusCode {
+        case 200:
+            do {
+                // Debug: print raw response
+                if let jsonString = String(data: data, encoding: .utf8) {
+                    print("Raw API response (first 2000 chars): \(String(jsonString.prefix(2000)))")
+                }
+                return try decoder.decode(ReadwiseListResponse.self, from: data)
+            } catch {
+                print("Decoding error details: \(error)")
+                if let jsonString = String(data: data, encoding: .utf8) {
+                    print("Failed JSON (first 2000 chars): \(String(jsonString.prefix(2000)))")
+                }
+                throw ReadwiseError.invalidResponse
+            }
+        case 401:
+            throw ReadwiseError.invalidAPIKey
+        case 429:
+            let retryAfter = Int(httpResponse.value(forHTTPHeaderField: "Retry-After") ?? "60") ?? 60
+            throw ReadwiseError.rateLimited(retryAfter: retryAfter)
+        default:
+            throw ReadwiseError.serverError(statusCode: httpResponse.statusCode)
         }
     }
 
     func fetchAllDocuments(
         apiKey: String,
         category: String = "article",
+        location: String? = nil,
         onProgress: @escaping @Sendable (ReadwiseImportProgress) -> Void
     ) async throws -> [ReadwiseDocument] {
         var allDocuments: [ReadwiseDocument] = []
@@ -160,7 +148,8 @@ actor ReadwiseService {
                 let response = try await fetchDocuments(
                     apiKey: apiKey,
                     pageCursor: cursor,
-                    category: category
+                    category: category,
+                    location: location
                 )
 
                 if totalCount == nil {
@@ -203,7 +192,8 @@ actor ReadwiseService {
 
     @MainActor
     func convertToMarkdown(document: ReadwiseDocument) async -> String? {
-        guard let html = document.html ?? document.content else {
+        guard let html = document.htmlContent ?? document.html ?? document.content else {
+            print("No HTML content for document: \(document.title ?? document.id)")
             return nil
         }
 
@@ -234,12 +224,12 @@ actor ReadwiseService {
         }
 
         if let publishedDate = document.publishedDate {
-            let formatter = ISO8601DateFormatter()
-            frontmatter += "published: \(formatter.string(from: publishedDate))\n"
+            frontmatter += "published: \(publishedDate)\n"
         }
 
-        if let tags = document.tags, !tags.isEmpty {
-            let tagList = tags.map { $0.name }.joined(separator: ", ")
+        let tagNames = document.tagNames
+        if !tagNames.isEmpty {
+            let tagList = tagNames.joined(separator: ", ")
             frontmatter += "tags: [\(tagList)]\n"
         }
 

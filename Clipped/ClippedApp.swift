@@ -17,6 +17,7 @@ struct ClippedApp: App {
                 )
         }
         .defaultSize(width: 1200, height: 800)
+        .windowResizability(.contentMinSize)
         .windowStyle(.hiddenTitleBar)
         .commands {
             CommandGroup(replacing: .newItem) {

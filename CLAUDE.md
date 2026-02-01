@@ -121,5 +121,4 @@ ClippedApp
 ## Current Limitations
 
 - Code blocks show language label but lack syntax highlighting colors
-- Window title and default sizing not configured
 - Loading states during article refresh could be improved

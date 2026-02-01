@@ -26,7 +26,7 @@
 
 ### Polish
 - [ ] Code blocks with actual syntax highlighting colors
-- [ ] Window title and default sizing
+- [x] Window title and default sizing
 - [ ] Loading states during article refresh
 
 ### Testing
