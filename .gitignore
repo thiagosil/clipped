@@ -5,6 +5,23 @@ DerivedData/
 *.xcworkspace
 !*.xcworkspace/contents.xcworkspacedata
 xcuserdata/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.moved-aside
+*.xccheckout
+*.hmap
+
+# Archives and builds
+*.xcarchive
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Code signing
+*.mobileprovision
+*.provisionprofile
 
 # Swift Package Manager
 .build/
@@ -12,3 +29,18 @@ xcuserdata/
 
 # macOS
 .DS_Store
+
+# Crash logs
+*.crash
+
+# Editors
+.idea/
+*.swp
+*.swo
+.vscode/
+
+# Secrets
+.env
+*.pem
+*.p12
+*.key
