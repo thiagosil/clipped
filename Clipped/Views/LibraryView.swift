@@ -10,11 +10,6 @@ struct LibraryView: View {
             // Header controls
             header
 
-            // Tag filters (if any active)
-            if !appState.selectedTags.isEmpty {
-                activeFilters
-            }
-
             // Article list
             articleList
 
@@ -30,11 +25,6 @@ struct LibraryView: View {
 
     private var header: some View {
         HStack(spacing: 10) {
-            // Tag filter dropdown
-            if !appState.allTags.isEmpty {
-                tagFilterMenu
-            }
-
             Spacer()
 
             // Sort picker
@@ -91,48 +81,7 @@ struct LibraryView: View {
         .menuStyle(.borderlessButton)
         .tint(Theme.sidebarIcon)
         .fixedSize()
-    }
-
-    private var tagFilterMenu: some View {
-        Menu {
-            if !appState.selectedTags.isEmpty {
-                Button("Clear Filters") {
-                    appState.clearTagFilters()
-                }
-                Divider()
-            }
-
-            ForEach(appState.allTags, id: \.self) { tag in
-                Button {
-                    appState.toggleTag(tag)
-                } label: {
-                    HStack {
-                        Text(tag)
-                        if appState.selectedTags.contains(tag) {
-                            Spacer()
-                            Image(systemName: "checkmark")
-                        }
-                    }
-                }
-            }
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: "number")
-                    .font(.system(size: 12, weight: .semibold))
-                if !appState.selectedTags.isEmpty {
-                    Text("\(appState.selectedTags.count)")
-                        .font(.system(size: 11, weight: .semibold))
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 2)
-                        .background(Theme.accent)
-                        .foregroundColor(.white)
-                        .clipShape(Capsule())
-                }
-            }
-        }
-        .menuStyle(.borderlessButton)
-        .tint(appState.selectedTags.isEmpty ? Theme.sidebarIcon : Theme.accent)
-        .fixedSize()
+        .help("More actions (⌘R refresh, ⌘O folder)")
     }
 
     private var sortMenu: some View {
@@ -151,12 +100,33 @@ struct LibraryView: View {
                 }
             }
         } label: {
-            Image(systemName: "arrow.up.arrow.down")
-                .font(.system(size: 12, weight: .medium))
+            HStack(spacing: 4) {
+                Image(systemName: sortIcon)
+                    .font(.system(size: 12, weight: .medium))
+                Text(sortLabel)
+                    .font(.system(size: 11))
+            }
         }
         .menuStyle(.borderlessButton)
         .tint(Theme.sidebarIcon)
         .fixedSize()
+        .help("Sort articles")
+    }
+
+    private var sortIcon: String {
+        switch appState.sortOrder {
+        case .dateAdded: return "calendar"
+        case .title: return "textformat"
+        case .progress: return "chart.bar.fill"
+        }
+    }
+
+    private var sortLabel: String {
+        switch appState.sortOrder {
+        case .dateAdded: return "Date"
+        case .title: return "Title"
+        case .progress: return "Progress"
+        }
     }
 
     private var searchField: some View {
@@ -203,40 +173,6 @@ struct LibraryView: View {
         }
     }
 
-    // MARK: - Active Filters
-
-    private var activeFilters: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 4) {
-                ForEach(Array(appState.selectedTags).sorted(), id: \.self) { tag in
-                    HStack(spacing: 3) {
-                        Text(tag)
-                            .font(.system(size: 10, weight: .medium))
-                        Button(action: { appState.toggleTag(tag) }) {
-                            Image(systemName: "xmark")
-                                .font(.system(size: 8, weight: .bold))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
-                    .background(Theme.accentSubtle)
-                    .foregroundColor(Theme.accent)
-                    .clipShape(Capsule())
-                }
-
-                Button("Clear") {
-                    appState.clearTagFilters()
-                }
-                .font(.system(size: 10))
-                .foregroundColor(Theme.listSecondaryText)
-                .buttonStyle(.plain)
-            }
-            .padding(.horizontal, 12)
-            .padding(.bottom, 6)
-        }
-    }
-
     // MARK: - Article List
 
     private var articleList: some View {
@@ -271,7 +207,7 @@ struct LibraryView: View {
                             )
                             if !appState.collapsedSections.contains(.continueReading) {
                                 ForEach(appState.continueReadingArticles) { article in
-                                    articleRow(for: article)
+                                    articleRow(for: article, isArchived: false)
                                 }
                             }
                         }
@@ -287,7 +223,7 @@ struct LibraryView: View {
                             )
                             if !appState.collapsedSections.contains(.quickWins) {
                                 ForEach(appState.quickWinsArticles) { article in
-                                    articleRow(for: article)
+                                    articleRow(for: article, isArchived: false)
                                 }
                             }
                         }
@@ -303,7 +239,23 @@ struct LibraryView: View {
                             )
                             if !appState.collapsedSections.contains(.theStack) {
                                 ForEach(appState.theStackArticles) { article in
-                                    articleRow(for: article)
+                                    articleRow(for: article, isArchived: false)
+                                }
+                            }
+                        }
+
+                        // Archived section
+                        if !appState.archivedArticles.isEmpty {
+                            SectionHeader(
+                                title: "Archived",
+                                icon: "archivebox.fill",
+                                count: appState.archivedArticles.count,
+                                isCollapsed: appState.collapsedSections.contains(.archived),
+                                onToggle: { appState.toggleSection(.archived) }
+                            )
+                            if !appState.collapsedSections.contains(.archived) {
+                                ForEach(appState.archivedArticles) { article in
+                                    articleRow(for: article, isArchived: true)
                                 }
                             }
                         }
@@ -314,7 +266,7 @@ struct LibraryView: View {
         }
     }
 
-    private func articleRow(for article: Article) -> some View {
+    private func articleRow(for article: Article, isArchived: Bool) -> some View {
         ArticleRow(
             article: article,
             isSelected: appState.selectedArticle?.id == article.id,
@@ -327,6 +279,21 @@ struct LibraryView: View {
         }
         .onHover { hovering in
             hoveredArticle = hovering ? article : nil
+        }
+        .contextMenu {
+            if isArchived {
+                Button {
+                    appState.unarchiveArticle(article)
+                } label: {
+                    Label("Unarchive", systemImage: "arrow.uturn.backward")
+                }
+            } else {
+                Button {
+                    appState.archiveArticle(article)
+                } label: {
+                    Label("Archive", systemImage: "archivebox")
+                }
+            }
         }
     }
 

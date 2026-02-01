@@ -17,8 +17,11 @@ class AppState: ObservableObject {
 
     private let articleService = ArticleService()
     private let progressStore = ReadingProgressStore()
+    private let archiveStore = ArchiveStore()
     let folderSettings = FolderSettingsStore()
     let readwiseSettings = ReadwiseSettingsStore()
+
+    @Published var archivedArticleIds: Set<String> = []
 
     enum SortOrder: String, CaseIterable {
         case dateAdded = "Date Added"
@@ -30,6 +33,7 @@ class AppState: ObservableObject {
         case continueReading = "Continue"
         case quickWins = "Quick Wins"
         case theStack = "The Stack"
+        case archived = "Archived"
     }
 
     var allTags: [String] {
@@ -39,6 +43,9 @@ class AppState: ObservableObject {
 
     var filteredArticles: [Article] {
         var result = articles
+
+        // Exclude archived articles
+        result = result.filter { !archivedArticleIds.contains($0.id) }
 
         // Filter by search text
         if !searchText.isEmpty {
@@ -65,6 +72,30 @@ class AppState: ObservableObject {
         case .progress:
             result.sort { ($0.readingProgress ?? 0) > ($1.readingProgress ?? 0) }
         }
+
+        return result
+    }
+
+    var archivedArticles: [Article] {
+        var result = articles.filter { archivedArticleIds.contains($0.id) }
+
+        // Apply same search/tag filters
+        if !searchText.isEmpty {
+            result = result.filter { article in
+                article.title.localizedCaseInsensitiveContains(searchText) ||
+                (article.author?.localizedCaseInsensitiveContains(searchText) ?? false) ||
+                article.tags.contains { $0.localizedCaseInsensitiveContains(searchText) }
+            }
+        }
+
+        if !selectedTags.isEmpty {
+            result = result.filter { article in
+                !selectedTags.isDisjoint(with: Set(article.tags))
+            }
+        }
+
+        // Sort by date added
+        result.sort { $0.dateAdded > $1.dateAdded }
 
         return result
     }
@@ -114,6 +145,7 @@ class AppState: ObservableObject {
             }
 
             articles = loadedArticles
+            archivedArticleIds = archiveStore.getAllArchived()
             loadSectionState()
         } catch let error as ArticleServiceError {
             loadError = error
@@ -150,6 +182,23 @@ class AppState: ObservableObject {
 
     func clearTagFilters() {
         selectedTags.removeAll()
+    }
+
+    func archiveArticle(_ article: Article) {
+        archiveStore.archive(article.id)
+        archivedArticleIds.insert(article.id)
+        if selectedArticle?.id == article.id {
+            selectedArticle = nil
+        }
+    }
+
+    func unarchiveArticle(_ article: Article) {
+        archiveStore.unarchive(article.id)
+        archivedArticleIds.remove(article.id)
+    }
+
+    func isArchived(_ article: Article) -> Bool {
+        archivedArticleIds.contains(article.id)
     }
 
     func toggleSection(_ section: SmartSurface) {

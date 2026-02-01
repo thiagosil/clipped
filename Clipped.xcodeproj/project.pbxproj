@@ -28,6 +28,7 @@
 		1A0000000000000000000103 /* ReadwiseDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000025 /* ReadwiseDocument.swift */; };
 		1A0000000000000000000104 /* Demark in Frameworks */ = {isa = PBXBuildFile; productRef = 1A0000000000000000000200 /* Demark */; };
 		1A0000000000000000000105 /* ReadwiseImportProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000026 /* ReadwiseImportProgress.swift */; };
+		1A0000000000000000000106 /* ArchiveStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000027 /* ArchiveStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -53,6 +54,7 @@
 		1A0000000000000000000024 /* ReadwiseImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadwiseImportView.swift; sourceTree = "<group>"; };
 		1A0000000000000000000025 /* ReadwiseDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadwiseDocument.swift; sourceTree = "<group>"; };
 		1A0000000000000000000026 /* ReadwiseImportProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadwiseImportProgress.swift; sourceTree = "<group>"; };
+		1A0000000000000000000027 /* ArchiveStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -105,6 +107,7 @@
 		1A0000000000000000000033 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				1A0000000000000000000027 /* ArchiveStore.swift */,
 				1A0000000000000000000016 /* ArticleService.swift */,
 				1A0000000000000000000021 /* FolderSettingsStore.swift */,
 				1A0000000000000000000017 /* ReadingProgressStore.swift */,
@@ -221,6 +224,7 @@
 				1A0000000000000000000007 /* ReadingProgressStore.swift in Sources */,
 				1A0000000000000000000100 /* ReadwiseSettingsStore.swift in Sources */,
 				1A0000000000000000000101 /* ReadwiseService.swift in Sources */,
+				1A0000000000000000000106 /* ArchiveStore.swift in Sources */,
 				1A0000000000000000000008 /* ContentView.swift in Sources */,
 				1A000000000000000000000E /* KeyboardShortcutsView.swift in Sources */,
 				1A0000000000000000000009 /* LibraryView.swift in Sources */,

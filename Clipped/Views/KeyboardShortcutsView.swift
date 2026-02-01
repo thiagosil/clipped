@@ -33,6 +33,7 @@ struct KeyboardShortcutsView: View {
                         shortcutRow(keys: ["Esc"], description: "Back to library")
                         shortcutRow(keys: ["⌘", "["], description: "Back to library")
                         shortcutRow(keys: ["n"], description: "Next unread article")
+                        shortcutRow(keys: ["a"], description: "Archive article")
                     }
 
                     // Scrolling section
